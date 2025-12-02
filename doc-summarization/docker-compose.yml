@@ -1,6 +1,7 @@
 services:
   # Backend Gateway (Python)
   backend:
+    image: vectorpathconsulting/doc-summarization-backend:latest
     build:
       context: ./backend
       dockerfile: Dockerfile
@@ -17,6 +18,7 @@ services:
 
   # Frontend (React)
   frontend:
+    image: vectorpathconsulting/doc-summarization-frontend:latest
     build:
       context: ./frontend
       dockerfile: Dockerfile
@@ -37,10 +39,10 @@ networks:
 # Usage Instructions:
 # =============================================================================
 #
-# 1. Copy backend/.env.example to backend/.env and configure your Keycloak credentials
+# 1. Copy backend/.env.example to backend/.env and configure your credentials
 #
 # 2. Start the application:
-#    docker-compose up -d
+#    docker compose up -d
 #
 # 3. Access the application:
 #    - Frontend: http://localhost:5173
@@ -48,9 +50,9 @@ networks:
 #    - API Docs: http://localhost:8000/docs
 #
 # 4. View logs:
-#    docker-compose logs -f
+#    docker compose logs -f
 #
 # 5. Stop the application:
-#    docker-compose down
+#    docker compose down
 #
 # =============================================================================
