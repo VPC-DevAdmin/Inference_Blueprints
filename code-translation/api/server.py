@@ -33,7 +33,7 @@ async def lifespan(app: FastAPI):
     try:
         api_client = get_api_client()
         app.state.api_client = api_client
-        logger.info("✓ API client initialized with Keycloak authentication")
+        logger.info("✓ API client initialized (auth_mode=%s)", api_client.auth_mode)
     except Exception as e:
         logger.error(f"Failed to initialize API client: {str(e)}")
         app.state.api_client = None
@@ -78,10 +78,14 @@ def root():
 @app.get("/health", response_model=HealthResponse)
 def health_check():
     """Detailed health check"""
+    api_client = getattr(app.state, "api_client", None)
+    is_auth = bool(api_client and api_client.is_authenticated())
+
     return HealthResponse(
         status="healthy",
         model_configured=bool(config.INFERENCE_MODEL_NAME),
-        keycloak_authenticated=app.state.api_client is not None and app.state.api_client.is_authenticated()
+        # Name stays for compatibility, but it really means "secured"
+        keycloak_authenticated=is_auth,
     )
 
 
