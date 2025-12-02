@@ -8,7 +8,6 @@ from typing import Optional
 import requests
 import httpx
 from openai import OpenAI
-
 import config
 
 logger = logging.getLogger(__name__)
@@ -19,22 +18,24 @@ class APIClient:
     Auth priority:
       1) Keycloak (if BASE_URL, KEYCLOAK_CLIENT_ID, KEYCLOAK_CLIENT_SECRET set)
       2) INFERENCE_API_KEY from config
-      3) Open mode (dummy key, backend is expected to ignore)
+      3) Open / no-auth mode
     """
 
     def __init__(self) -> None:
         self.base_url: Optional[str] = getattr(config, "BASE_URL", None)
-        self.token: Optional[str] = None              # Keycloak access token
+        self.token: Optional[str] = None
         self.api_key: Optional[str] = getattr(config, "INFERENCE_API_KEY", None)
-        self.http_client: httpx.Client = httpx.Client(verify=False)
-        # "keycloak", "api_key", or "open"
-        self.auth_mode: str = "open"
+        self.http_client = httpx.Client(verify=False)
 
+        self.auth_mode = "open"
         self._init_auth()
 
+    # ------------------------------------------------------------------
+    # Authentication
+    # ------------------------------------------------------------------
     def _init_auth(self) -> None:
-        """Decide how to authenticate: Keycloak, API key, or open."""
-        # Tier 1: Keycloak
+        """Choose auth method in priority order."""
+        # 1) Keycloak
         if (
             self.base_url
             and getattr(config, "KEYCLOAK_CLIENT_ID", None)
@@ -57,52 +58,42 @@ class APIClient:
                         self.auth_mode = "keycloak"
                         logger.info("Keycloak authentication successful")
                         return
-                    logger.warning("Keycloak response did not contain an access_token")
                 else:
                     logger.warning(
-                        "Keycloak auth failed: %s - %s",
+                        "Keycloak auth failed: %s %s",
                         response.status_code,
                         response.text,
                     )
             except Exception as exc:
-                logger.warning("Keycloak auth error: %s", exc)
+                logger.warning("Keycloak authentication error: %s", exc)
 
-        # Tier 2: direct API key
+        # 2) API Key
         if self.api_key:
             self.auth_mode = "api_key"
             logger.info("Using INFERENCE_API_KEY for authentication")
             return
 
-        # Tier 3: open mode
+        # 3) Open mode
+        logger.info("No auth configured, running in open mode")
         self.auth_mode = "open"
-        logger.info("No authentication configured, running in open mode")
 
+    # ------------------------------------------------------------------
+    # OpenAI Client Builder
+    # ------------------------------------------------------------------
     def _get_openai_client(self) -> OpenAI:
-        """
-        Build an OpenAI style client pointed at your inference endpoint.
-
-        Example:
-          BASE_URL = "https://inference-on-ibm.edgecollaborate.com"
-          INFERENCE_MODEL_ENDPOINT = "v1/chat/completions"
-          -> full base: "https://inference-on-ibm.edgecollaborate.com/v1/chat/completions"
-        """
+        """Construct an OpenAI-compatible client pointed at BASE_URL/v1/chat/completions"""
         if not self.base_url:
-            raise ValueError("BASE_URL is not configured in config.py")
+            raise ValueError("BASE_URL must be configured")
 
+        # Choose which key the OpenAI client sends
         if self.auth_mode == "keycloak" and self.token:
             key = self.token
         elif self.auth_mode == "api_key" and self.api_key:
             key = self.api_key
         else:
-            # Open mode, backend is expected to ignore or not enforce the key
             key = "no-auth"
 
-        endpoint_path = getattr(config, "INFERENCE_MODEL_ENDPOINT", "").strip("/")
-        full_base = (
-            f"{self.base_url.rstrip('/')}/{endpoint_path}"
-            if endpoint_path
-            else self.base_url.rstrip("/")
-        )
+        full_base = f"{self.base_url.rstrip('/')}/v1/chat/completions"
 
         return OpenAI(
             api_key=key,
@@ -111,40 +102,27 @@ class APIClient:
         )
 
     def get_inference_client(self) -> OpenAI:
-        """Public accessor for the underlying OpenAI style client."""
         return self._get_openai_client()
 
+    # ------------------------------------------------------------------
+    # Code Translation
+    # ------------------------------------------------------------------
     def translate_code(self, source_code: str, source_lang: str, target_lang: str) -> str:
-        """
-        Translate code from one language to another using the configured model.
-
-        Args:
-            source_code: Code to translate
-            source_lang: Source programming language
-            target_lang: Target programming language
-
-        Returns:
-            Translated code as plain text (no markdown fences)
-        """
+        """Translate code using OpenAI-style chat completions."""
         client = self._get_openai_client()
 
         system_prompt = (
-            "You are a senior software engineer that translates code from one "
-            "language to another. Preserve logic and structure. Output only the "
-            "translated code, with no explanations and no markdown formatting."
+            "You are a senior software engineer. Translate code between languages. "
+            "Output only the translated code. Do not add markdown or explanations."
         )
 
-        user_prompt = f"""Translate the following {source_lang} code to {target_lang}.
+        user_prompt = f"""
+Translate the following {source_lang} code into {target_lang}.
+Return only the translated {target_lang} code. No markdown fences.
 
-Return only the {target_lang} code, without comments or explanations,
-and without markdown code fences.
-
-{source_lang} code:
-```{source_lang}
+Source ({source_lang}):
 {source_code}
-```"""
-
-        logger.info("Translating code from %s to %s", source_lang, target_lang)
+"""
 
         try:
             response = client.chat.completions.create(
@@ -153,71 +131,44 @@ and without markdown code fences.
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt},
                 ],
-                max_tokens=getattr(config, "LLM_MAX_TOKENS", 2048),
-                temperature=getattr(config, "LLM_TEMPERATURE", 0.2),
+                max_tokens=config.LLM_MAX_TOKENS,
+                temperature=config.LLM_TEMPERATURE,
             )
 
-            if not hasattr(response, "choices") or not response.choices:
-                logger.error("Unexpected response structure: %r", response)
-                return ""
-
             content = response.choices[0].message.content or ""
-            translated = self._strip_code_fences(content)
-            logger.info("Successfully translated code (%d characters)", len(translated))
-            return translated
+            return self._strip_code_fences(content)
 
         except Exception as exc:
-            logger.error("Error translating code: %s", exc, exc_info=True)
+            logger.error("Code translation failed: %s", exc, exc_info=True)
             raise
 
     @staticmethod
     def _strip_code_fences(text: str) -> str:
-        """
-        Remove common markdown code fences and language tags.
-        """
-        stripped = text.strip()
+        """Remove ```python fences and language tags."""
+        t = text.strip()
 
-        # Remove surrounding ```...``` if present
-        if stripped.startswith("```") and stripped.endswith("```"):
-            stripped = stripped[3:-3].strip()
+        if t.startswith("```") and t.endswith("```"):
+            t = t[3:-3].strip()
 
-        # Remove a leading language tag like "python\n"
-        first_newline = stripped.find("\n")
-        if first_newline != -1:
-            first_line = stripped[:first_newline].strip().lower()
-            if first_line in {"python", "java", "c", "cpp", "rust", "go", "ts", "js", "javascript", "csharp"}:
-                stripped = stripped[first_newline + 1 :].lstrip()
+        # Remove leading language tag line if present
+        first_line = t.split("\n", 1)[0].lower().strip()
+        if first_line in {"python", "java", "c", "cpp", "go", "rust"}:
+            t = "\n".join(t.split("\n")[1:])
 
-        return stripped
+        return t.strip()
 
     def is_authenticated(self) -> bool:
-        """
-        Consider the client authenticated if we either:
-          - have a Keycloak token, or
-          - have an API key configured
-        """
-        if self.auth_mode == "keycloak" and self.token:
-            return True
-        if self.auth_mode == "api_key" and self.api_key:
-            return True
-        return False
-
-    def __del__(self) -> None:
-        if self.http_client:
-            try:
-                self.http_client.close()
-            except Exception:
-                pass
+        return (
+            (self.auth_mode == "keycloak" and self.token)
+            or (self.auth_mode == "api_key" and self.api_key)
+        )
 
 
-# Global API client instance
+# Global singleton
 _api_client: Optional[APIClient] = None
 
 
 def get_api_client() -> APIClient:
-    """
-    Get or create the global API client instance.
-    """
     global _api_client
     if _api_client is None:
         _api_client = APIClient()
