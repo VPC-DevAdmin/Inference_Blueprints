@@ -80,10 +80,39 @@ class APIClient:
     # ------------------------------------------------------------------
     # OpenAI Client Builder
     # ------------------------------------------------------------------
-    def _get_openai_client(self) -> OpenAI:
-        """Construct an OpenAI-compatible client pointed at BASE_URL/v1/chat/completions"""
+    def _normalized_api_root(self) -> str:
+        """
+        Normalize BASE_URL so users can paste:
+          - https://host
+          - https://host/
+          - https://host/v1
+          - https://host/v1/chat/completions
+
+        and we always end up with https://host/v1 as the base_url.
+        """
         if not self.base_url:
             raise ValueError("BASE_URL must be configured")
+
+        raw = self.base_url.rstrip("/")
+
+        # Strip a full chat completions suffix if present
+        if raw.endswith("/chat/completions"):
+            raw = raw[: -len("/chat/completions")]
+
+        # Strip a trailing /v1 if present
+        if raw.endswith("/v1"):
+            raw = raw[: -len("/v1")]
+
+        return raw + "/v1"
+
+    def _get_openai_client(self) -> OpenAI:
+        """
+        Construct an OpenAI compatible client pointed at BASE_URL/v1.
+
+        The OpenAI SDK will append /chat/completions itself when
+        you call client.chat.completions.create(...).
+        """
+        api_root = self._normalized_api_root()
 
         # Choose which key the OpenAI client sends
         if self.auth_mode == "keycloak" and self.token:
@@ -93,11 +122,9 @@ class APIClient:
         else:
             key = "no-auth"
 
-        full_base = f"{self.base_url.rstrip('/')}/v1/chat/completions"
-
         return OpenAI(
             api_key=key,
-            base_url=full_base,
+            base_url=api_root,
             http_client=self.http_client,
         )
 
