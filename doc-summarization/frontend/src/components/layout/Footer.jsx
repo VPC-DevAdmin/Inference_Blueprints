@@ -5,14 +5,13 @@ export const Footer = () => {
         <div className="flex flex-col items-center justify-center space-y-3">
           <div className="flex items-center space-x-2">
             <img
-              src="/cloud2labs-logo.png"
-              alt="Cloud2Labs"
+              src="/vpc-logo.png"
+              alt="Dell Inference Blueprints"
               className="h-8 object-contain"
             />
-            <span className="text-sm font-medium text-gray-700">Cloud2Labs</span>
+            <span className="text-sm font-medium text-gray-700">Dell Inference Blueprints</span>
           </div>
           <p className="text-xs text-gray-500">
-            © 2025 Cloud2Labs. All rights reserved.
           </p>
         </div>
       </div>

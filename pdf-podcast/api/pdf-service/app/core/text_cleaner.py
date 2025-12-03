@@ -16,8 +16,6 @@ class TextCleaner:
             r'^Page \d+',  # "Page N"
             r'^\d+ of \d+$',  # "1 of 10"
             r'^Copyright ©',  # Copyright notices
-            r'^©\s*\d{4}',  # © 2024
-            r'^All rights reserved',
             r'^\d{4}-\d{2}-\d{2}$',  # Dates in headers
         ]
 

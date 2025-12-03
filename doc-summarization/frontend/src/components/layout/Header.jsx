@@ -17,8 +17,8 @@ export const Header = () => {
           {/* Logo */}
           <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
             <img
-              src="/cloud2labs-logo.png"
-              alt="Cloud2Labs"
+              src="/vpc-logo.png"
+              alt="Dell Inference Blueprints"
               className="h-10 w-10 object-contain"
             />
             <span className="text-xl font-bold text-gray-900">

@@ -49,8 +49,8 @@ export const Home = () => {
       <section className="text-center space-y-6 py-12">
         <div className="inline-block">
           <img
-            src="/cloud2labs-logo.png"
-            alt="Cloud2Labs"
+            src="/vpc-logo.png"
+            alt="Dell Inference Blueprints"
             className="w-32 h-32 object-contain mx-auto mb-6"
           />
         </div>

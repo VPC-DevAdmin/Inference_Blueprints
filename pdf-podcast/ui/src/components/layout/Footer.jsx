@@ -6,10 +6,10 @@ export const Footer = () => {
           <div className="flex items-center gap-3">
             <span className="text-base text-gray-700 font-medium">Powered by</span>
             <div className="flex items-center gap-2">
-              {/* Cloud2Labs Logo - Replace src with your actual logo */}
+              {/* Dell Inference Blueprints Logo - Replace src with your actual logo */}
               <img
-                src="/cloud2labs-logo.png"
-                alt="Cloud2Labs"
+                src="/vpc-logo.png"
+                alt="Dell Inference Blueprints"
                 className="h-12 w-auto"
                 onError={(e) => {
                   // Fallback to text if image not found
@@ -21,7 +21,7 @@ export const Footer = () => {
                 className="text-2xl font-bold bg-gradient-to-r from-primary-600 to-secondary-600 bg-clip-text text-transparent hidden"
                 style={{ display: 'none' }}
               >
-                Cloud2Labs
+                Dell Inference Blueprints
               </span>
             </div>
           </div>

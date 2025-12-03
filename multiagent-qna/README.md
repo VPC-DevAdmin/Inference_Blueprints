@@ -127,8 +127,8 @@ docker ps
 ### Clone the Repository
 
 ```bash
-git clone https://github.com/cld2labs/GenAISamples.git
-cd GenAISamples/multiagent-qna
+git clone https://github.com/VPC-Repo/Dell_Inference_Blueprints.git
+cd Dell_Inference_Blueprints/multiagent-qna
 ```
 
 ### Set up the Environment
