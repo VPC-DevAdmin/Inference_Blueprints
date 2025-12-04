@@ -69,8 +69,8 @@ Below is the architecture as it consists of a server that waits for code input o
       end
 
       subgraph "External Services"
-          E[Auth Provider<br/>(Keycloak/OAuth2, optional)]
-          F[Model Endpoint<br/>(OpenAI-compatible)]
+          E["Auth Provider<br/>(Keycloak/OAuth2, optional)"]
+          F["Model Endpoint<br/>(OpenAI-compatible)"]
       end
 
       A1 --> B
