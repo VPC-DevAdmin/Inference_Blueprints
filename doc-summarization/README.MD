@@ -49,12 +49,12 @@ The application accepts pasted text or uploaded documents and returns a concise 
 
 ```mermaid
 graph TB
-    A[React/Vite UI<br/>Port 5173] -->|/v1/docsum| B[FastAPI Backend<br/>Port 8000]
-    B -->|Extract text| C[PDF/DOC/DOCX/TXT Service<br/>(OCR fallback)]
-    B -->|Summarize| D[LLM Service]
-    D --> E[API Client]
-    E -->|Keycloak token (if configured)| F[Keycloak /token]
-    E -->|API Key or open mode| G[Enterprise Inference<br/>OpenAI-compatible /v1]
+    A["React/Vite UI\nPort 5173"] -->|/v1/docsum| B["FastAPI Backend\nPort 8000"]
+    B -->|Extract text| C["PDF/DOC/DOCX/TXT Service\n(OCR fallback)"]
+    B -->|Summarize| D["LLM Service"]
+    D --> E["API Client"]
+    E -->|Keycloak token (if configured)| F["Keycloak /token"]
+    E -->|API key or open mode| G["Enterprise Inference\nOpenAI-compatible /v1"]
     F -->|Bearer token| E
     G -->|Summary| B
     B -->|JSON/SSE| A
