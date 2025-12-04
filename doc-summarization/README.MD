@@ -1,15 +1,16 @@
 ## Document Summarization
 
-A full-stack document summarization application that processes text and document files to generate concise summaries.
-The system integrates a FastAPI backend with enterprise inference endpoints, alongside a modern React + Vite + Tailwind CSS frontend for an intuitive user experience.
+Full-stack document summarization with a FastAPI backend and React + Vite frontend. Text or documents (PDF/DOC/DOCX/TXT) are extracted server-side and summarized through an OpenAI-compatible enterprise inference endpoint with optional Keycloak token, API key, or open mode.
 
 ## Table of Contents
 
 - [Project Overview](#project-overview)
 - [Features](#features)
 - [Architecture](#architecture)
-- [Prerequisites](#prerequisites)
-- [Quick Start Deployment](#quick-start-deployment)
+- [Configuration](#configuration)
+- [Run with Docker](#run-with-docker)
+- [Run Locally](#run-locally)
+- [API](#api)
 - [User Interface](#user-interface)
 - [Troubleshooting](#troubleshooting)
 
@@ -17,7 +18,7 @@ The system integrates a FastAPI backend with enterprise inference endpoints, alo
 
 ## Project Overview
 
-The **Document Summarization** application processes multiple content formats to generate concise summaries. Users can paste text or upload documents (PDF, DOCX). The backend uses enterprise inference endpoints via Keycloak authentication for all text summarization.
+The application accepts pasted text or uploaded documents and returns a concise summary. PDFs attempt text extraction first and fall back to OCR when needed. Summaries are generated via an OpenAI-compatible endpoint at `BASE_URL`, with authentication negotiated automatically (Keycloak client credentials → `INFERENCE_API_KEY` → open mode).
 
 ---
 
@@ -25,238 +26,159 @@ The **Document Summarization** application processes multiple content formats to
 
 **Backend**
 
-- Multiple input format support (text, PDF, DOCX)
-- PDF text extraction with OCR support for image-based PDFs
-- DOCX document processing
-- Enterprise inference endpoints for text summarization via Keycloak
-- File validation and size limits (PDF/DOCX: 50 MB)
-- CORS enabled for web integration
-- Comprehensive error handling and logging
-- Health check endpoints
-- Modular architecture (routes + services)
+- One summarization endpoint for text or common document types; PDFs fall back to OCR if needed.
+- Chooses the right model automatically and sends requests to your configured inference endpoint.
+- Works with secure token, API key, or open mode (you pick); results can stream live or return in one response.
+- Designed to stay stable and observable with health checks and logging.
 
 **Frontend**
 
-- Clean, intuitive interface with tab-based input selection
-- Drag-and-drop file upload
-- Real-time summary display
-- Mobile-responsive design with Tailwind CSS
-- Built with Vite for fast development
+- Clean two-tab flow: paste text or upload a file, with drag-and-drop and clear format/size hints.
+- Connects to the backend endpoint you set, including when running through Docker.
+- Responsive layout with instant toast feedback and a dedicated summary viewer.
+
+**User benefits**
+
+- Paste text or drag-and-drop documents with clear format guidance.
+- Optional streaming shows summaries as they are generated.
+- Responsive UI on desktop and mobile with instant success/error toasts.
 
 ---
 
 ## Architecture
 
-Below is the architecture showing how user input is processed through document extraction, then summarized using the enterprise inference endpoint.
-
 ```mermaid
 graph TB
-    A[React Web UI<br/>Port 5173] -->|User Input| B[FastAPI Backend<br/>Port 8000]
-
-    B --> C{Input Type}
-    C -->|Text| D[LLM Service]
-    C -->|PDF/DOCX| E[PDF Service]
-
-    E -->|Extracted Text| D
-
-    D -->|Get Token| F[API Client]
-    F -->|Authenticate| G[Keycloak]
-    G -->|Access Token| F
-    F -->|Token| D
-    D -->|API Call with Token| H[Enterprise Inference<br/>Llama-3.1-8B-Instruct]
-    H -->|Summary| B
-    B -->|JSON Response| A
+    A[React/Vite UI<br/>Port 5173] -->|/v1/docsum| B[FastAPI Backend<br/>Port 8000]
+    B -->|Extract text| C[PDF/DOC/DOCX/TXT Service<br/>(OCR fallback)]
+    B -->|Summarize| D[LLM Service]
+    D --> E[API Client]
+    E -->|Keycloak token (if configured)| F[Keycloak /token]
+    E -->|API Key or open mode| G[Enterprise Inference<br/>OpenAI-compatible /v1]
+    F -->|Bearer token| E
+    G -->|Summary| B
+    B -->|JSON/SSE| A
 
     style A fill:#e1f5ff
     style B fill:#fff4e1
+    style C fill:#ffe1f5
     style D fill:#ffe1f5
-    style E fill:#ffe1f5
-    style F fill:#fffacd
-    style G fill:#ffcccc
-    style H fill:#e1ffe1
+    style E fill:#fffacd
+    style F fill:#ffcccc
+    style G fill:#e1ffe1
 ```
-
-**Service Components:**
-
-1. **React Web UI (Port 5173)** - Provides intuitive interface with drag-and-drop file upload, tab-based input selection, and real-time summary display
-
-2. **FastAPI Backend (Port 8000)** - Orchestrates document processing, handles authentication, and routes requests to appropriate processing services
-
-**Typical Flow:**
-
-1. User inputs text or uploads a document (PDF/DOCX) through the web UI.
-2. The backend processes the input:
-   - Text: Sent directly to LLM service
-   - PDF/DOCX: Extracted using PDF service with OCR support
-3. The LLM service requests a token from API Client.
-4. API Client authenticates with Keycloak and obtains an access token.
-5. LLM service uses the token to call the enterprise inference endpoint.
-6. The model generates a summary using Llama-3.1-8B-Instruct.
-7. The summary is returned and displayed to the user via the UI.
 
 ---
 
-## Prerequisites
+## Configuration
 
-### System Requirements
-
-Before you begin, ensure you have the following installed:
-
-- **Docker and Docker Compose**
-- **Enterprise inference endpoint access** (Keycloak authentication)
-
-### Verify Docker Installation
-
+### Backend environment (`backend/.env`)
+Copy the template and edit values:
 ```bash
-# Check Docker version
-docker --version
-
-# Check Docker Compose version
-docker compose version
-
-# Verify Docker is running
-docker ps
+cp backend/.env.example backend/.env
 ```
+Key settings:
+- `BASE_URL` (required): Base URL of the enterprise inference gateway (example: `https://api.example.com`).
+- Auth options (priority):
+  - Keycloak: `KEYCLOAK_CLIENT_ID`, `KEYCLOAK_CLIENT_SECRET` (token requested at `${BASE_URL}/token`).
+  - API key: `INFERENCE_API_KEY` (OpenAI-style key).
+  - Open mode: no credentials; a placeholder key is used but `BASE_URL` is still required.
+- Models: `SELECTED_MODEL` (if set) → `INFERENCE_MODEL_NAME` (default `meta-llama/Llama-3.1-8B-Instruct`) → `INFERENCE_MODEL_ENDPOINT`.
+- LLM tuning: `LLM_TEMPERATURE`, `LLM_MAX_TOKENS`.
+- Processing limits: `MAX_PDF_PAGES` (default 100-page cap). `MAX_FILE_SIZE`/`MAX_PDF_SIZE` are available for future validation; Docker nginx currently allows up to 500MB uploads.
+- Service: `SERVICE_PORT` (default 8000), `LOG_LEVEL`, `CORS_ORIGINS`.
+
+### Frontend environment (`frontend/.env.local`)
+Set when running outside Docker:
+```bash
+VITE_BACKEND_ENDPOINT=http://localhost:8000
+```
+Leave empty when using Docker Compose; nginx forwards `/v1/*` to the backend container.
+
+### Local system dependencies (when not using Docker)
+PDF OCR requires system packages:
+- macOS (Homebrew): `brew install tesseract poppler`
+- Debian/Ubuntu: `sudo apt-get install tesseract-ocr tesseract-ocr-eng poppler-utils`
 
 ---
 
-## Quick Start Deployment
-
-### Clone the Repository
+## Run with Docker
 
 ```bash
 git clone https://github.com/VPC-Repo/Dell_Inference_Blueprints.git
 cd Dell_Inference_Blueprints/doc-summarization
+
+cp backend/.env.example backend/.env   # then edit values
+docker compose up --build              # add -d to run detached
 ```
 
-### Set up the Environment
+- Backend API: `http://localhost:8000`
+- API docs: `http://localhost:8000/docs`
+- Frontend: `http://localhost:5173`
+- Logs: `docker compose logs -f [backend|frontend]`
+- Stop: `docker compose down`
 
-This application requires an `.env` file in the `backend` directory for proper configuration. Create it with the commands below:
+---
 
+## Run Locally
+
+Backend:
 ```bash
-# Create the .env file in the backend directory
-mkdir -p backend
-cat > backend/.env << EOF
-# Enterprise/Keycloak Configuration (REQUIRED)
-BASE_URL=https://api.example.com
-KEYCLOAK_REALM=master
-KEYCLOAK_CLIENT_ID=api
-KEYCLOAK_CLIENT_SECRET=your_client_secret
-
-# Model Configuration (Enterprise Inference)
-INFERENCE_MODEL_ENDPOINT=Llama-3.1-8B-Instruct
-INFERENCE_MODEL_NAME=meta-llama/Llama-3.1-8B-Instruct
-
-# LLM Configuration
-LLM_TEMPERATURE=0.7
-LLM_MAX_TOKENS=2000
-
-# Service Configuration
-SERVICE_PORT=8000
-LOG_LEVEL=INFO
-
-# CORS Settings
-CORS_ORIGINS=*
-EOF
+cd backend
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env   # configure BASE_URL and auth
+uvicorn server:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-Or manually create `backend/.env` with:
-
+Frontend:
 ```bash
-# Enterprise/Keycloak Configuration (REQUIRED)
-BASE_URL=https://api.example.com
-KEYCLOAK_REALM=master
-KEYCLOAK_CLIENT_ID=api
-KEYCLOAK_CLIENT_SECRET=your_client_secret
-
-# Model Configuration (Enterprise Inference)
-INFERENCE_MODEL_ENDPOINT=Llama-3.1-8B-Instruct
-INFERENCE_MODEL_NAME=meta-llama/Llama-3.1-8B-Instruct
-
-# LLM Configuration
-LLM_TEMPERATURE=0.7
-LLM_MAX_TOKENS=2000
-
-# Service Configuration
-SERVICE_PORT=8000
-LOG_LEVEL=INFO
-
-# CORS Settings
-CORS_ORIGINS=*
-```
-
-
-### Running the Application
-
-Start both API and UI services together with Docker Compose:
-
-```bash
-# From the doc-summarization directory
-docker compose up --build
-
-# Or run in detached mode (background)
-docker compose up -d --build
-```
-
-The Backend will be available at: `http://localhost:8000`
-The UI will be available at: `http://localhost:5173`
-
-**View logs**:
-
-```bash
-# All services
-docker compose logs -f
-
-# Backend only
-docker compose logs -f backend
-
-# Frontend only
-docker compose logs -f frontend
-```
-
-**Verify the services are running**:
-
-```bash
-# Check API health
-curl http://localhost:8000/health
-
-# Check if containers are running
-docker compose ps
+cd frontend
+npm install
+echo "VITE_BACKEND_ENDPOINT=http://localhost:8000" > .env.local
+npm run dev -- --host --port 5173
 ```
 
 ---
 
+## API
+
+- `GET /health` – Service status (includes `llm_provider` only when auth is configured).
+- `POST /v1/docsum` – Form-data fields:
+  - `type`: `text` for raw text; any value when uploading a file.
+  - `messages`: text content (required when `type=text`).
+  - `files`: PDF/DOC/DOCX/TXT upload (optional).
+  - `max_tokens`: summary length (default 1024).
+  - `language`, `summary_type`: reserved fields (passed through to the backend).
+  - `stream`: `true` for SSE streaming; otherwise returns JSON.
+
+Examples:
+```bash
+# Text
+curl -X POST http://localhost:8000/v1/docsum \
+  -F "type=text" \
+  -F "messages=Paste your text here"
+
+# PDF/DOC/DOCX
+curl -X POST http://localhost:8000/v1/docsum \
+  -F "type=file" \
+  -F "files=@/path/to/document.pdf" \
+  -F "max_tokens=1024"
+```
+
+---
 
 ## User Interface
 
-**Using the Application**
-
-Make sure you are at the localhost:5173 url
-
-You will be directed to the main page which has each feature
+Open `http://localhost:5173` and use the **Generate Summary** page to paste text or upload a PDF/DOC/DOCX. The two-tab layout keeps text and file inputs simple, drag-and-drop is supported, and toast alerts confirm success or errors. Summaries appear in the right-hand panel.
 
 ![Home Page - Hero Section](./assets/img/homepage.png)
 
 ![Home Page - Hero Section](./assets/img/ui.png)
 
-
-
-**UI Configuration**
-
-When running with Docker Compose, the UI automatically connects to the backend API. The frontend is available at `http://localhost:5173` and the API at `http://localhost:8000`.
-
-
-### Stopping the Application
-
-```bash
-docker compose down
-```
-
 ---
 
 ## Troubleshooting
 
-For comprehensive troubleshooting guidance, common issues, and solutions, refer to:
-
-[TROUBLESHOOTING.md](./TROUBLESHOOTING.md)
-
+See `TROUBLESHOOTING.md` for common fixes.
