@@ -79,10 +79,10 @@ Below is the architecture as it consists of a server that waits for code input o
       B --> C
       C -->|Extracted Code| B
       B --> D
-      D -->|Get Token (optional)| E
-      E -->|Access Token| D
-      D -->|Translate Code + Auth| F
-      F -->|Translated Code| D
+      D -->|"Get Token (optional)"| E
+      E -->|"Access Token"| D
+      D -->|"Translate Code + Auth"| F
+      F -->|"Translated Code"| D
       D --> B
       B --> A
 
