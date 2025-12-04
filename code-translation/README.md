@@ -1,7 +1,7 @@
 ## Code Translation
 
 A full-stack code translation application that converts code between programming languages using AI.
-The system integrates a FastAPI backend powered by CodeLlama-34b-instruct, alongside a modern React + Vite + Tailwind CSS frontend for an intuitive translation experience.
+The system integrates a FastAPI backend that calls an OpenAI-compatible inference endpoint (defaulting to `meta-llama/Llama-3.1-8B-Instruct`), alongside a modern React + Vite + Tailwind CSS frontend for an intuitive translation experience.
 
 ## Table of Contents
 
@@ -17,7 +17,7 @@ The system integrates a FastAPI backend powered by CodeLlama-34b-instruct, along
 
 ## Project Overview
 
-The **Code Translation** application demonstrates how large language models can be used to translate code between different programming languages. It accepts source code in one language, processes it through CodeLlama-34b-instruct, and returns translated code in the target language. This project integrates seamlessly with cloud-hosted APIs or local model endpoints, offering flexibility for research, enterprise, or educational use.
+The **Code Translation** application demonstrates how large language models can be used to translate code between different programming languages. It accepts source code in one language, processes it through a configurable OpenAI-compatible model endpoint, and returns translated code in the target language. This project integrates seamlessly with cloud-hosted APIs or local model endpoints, offering flexibility for research, enterprise, or educational use. The default model is `meta-llama/Llama-3.1-8B-Instruct`, but you can point it to other models such as CodeLlama-34b.
 
 ---
 
@@ -27,9 +27,8 @@ The **Code Translation** application demonstrates how large language models can 
 
 - Code translation between 6 languages (Java, C, C++, Python, Rust, Go)
 - PDF code extraction with pattern recognition
-- CodeLlama-34b-instruct for accurate translations
-- Enterprise inference endpoints
-- Keycloak authentication for secure API access
+- Configurable OpenAI-compatible inference endpoint (default: `meta-llama/Llama-3.1-8B-Instruct`)
+- Authentication priority: Keycloak client credentials (if provided) → `INFERENCE_API_KEY` → open mode
 - Comprehensive error handling and logging
 - File validation and size limits
 - CORS enabled for web integration
@@ -52,7 +51,7 @@ The **Code Translation** application demonstrates how large language models can 
 
 ## Architecture
 
-Below is the architecture as it consists of a server that waits for code input or PDF uploads. Once code is provided, the server calls the CodeLlama model to translate the code to the target language.
+Below is the architecture as it consists of a server that waits for code input or PDF uploads. Once code is provided, the server calls the configured OpenAI-compatible model to translate the code to the target language.
 
 ```mermaid
   graph TB
@@ -70,8 +69,8 @@ Below is the architecture as it consists of a server that waits for code input o
       end
 
       subgraph "External Services"
-          E[Keycloak Auth]
-          F[CodeLlama-34b Model]
+          E[Auth Provider<br/>(Keycloak/OAuth2, optional)]
+          F[Model Endpoint<br/>(OpenAI-compatible)]
       end
 
       A1 --> B
@@ -80,9 +79,9 @@ Below is the architecture as it consists of a server that waits for code input o
       B --> C
       C -->|Extracted Code| B
       B --> D
-      D -->|Get Token| E
+      D -->|Get Token (optional)| E
       E -->|Access Token| D
-      D -->|Translate Code + Token| F
+      D -->|Translate Code + Auth| F
       F -->|Translated Code| D
       D --> B
       B --> A
@@ -92,19 +91,19 @@ Below is the architecture as it consists of a server that waits for code input o
       style F fill:#e1ffe1
 ```
 
-This application is built with enterprise inference capabilities using Keycloak for authentication and CodeLlama-34b-instruct for code translation.
+This application is built with enterprise inference capabilities using optional Keycloak authentication and any OpenAI-compatible inference endpoint (defaulting to `meta-llama/Llama-3.1-8B-Instruct`).
 
 **Service Components:**
 
 1. **React Web UI (Port 3000)** -  Provides side-by-side code comparison interface with language selection, PDF upload, and real-time translation results
 
-2. **FastAPI Backend (Port 5001)** -  Handles code validation, PDF extraction, Keycloak authentication, and orchestrates code translation through CodeLlama model
+2. **FastAPI Backend (Port 5001)** -  Handles code validation, PDF extraction, optional Keycloak authentication or API-key auth, and orchestrates code translation through your configured model endpoint
 
 **Typical Flow:**
 
 1. User enters code or uploads a PDF through the web UI.
 2. The backend validates the input and extracts code if needed.
-3. The backend authenticates with Keycloak and calls CodeLlama model.
+3. The backend authenticates with Keycloak (if credentials are provided) or uses `INFERENCE_API_KEY`/open mode, then calls the configured model endpoint.
 4. The model translates the code to the target language.
 5. The translated code is returned and displayed to the user.
 6. User can copy the translated code with one click.
@@ -118,7 +117,7 @@ This application is built with enterprise inference capabilities using Keycloak 
 Before you begin, ensure you have the following installed:
 
 - **Docker and Docker Compose**
-- **Enterprise inference endpoint access** (Keycloak authentication)
+- **Access to an OpenAI-compatible inference endpoint** (with Keycloak token or API key if required)
 
 ### Verify Docker Installation
 
@@ -150,17 +149,20 @@ This application requires an `.env` file in the root directory for proper config
 ```bash
 # Create the .env file
 cat > .env << EOF
-# Backend API Configuration
-BACKEND_PORT=5001
-
-# Required - Enterprise/Keycloak Configuration
+# Inference endpoint (OpenAI-compatible)
 BASE_URL=https://api.example.com
+
+# Authentication (choose one path)
+# 1) API key (OpenAI-style)
+INFERENCE_API_KEY=your_api_key
+
+# 2) Keycloak client credentials (if your endpoint is protected this way)
 KEYCLOAK_CLIENT_ID=api
 KEYCLOAK_CLIENT_SECRET=your_client_secret
+KEYCLOAK_REALM=master
 
-# Required - Model Configuration
-INFERENCE_MODEL_ENDPOINT=CodeLlama-34b-Instruct-hf
-INFERENCE_MODEL_NAME=codellama/CodeLlama-34b-Instruct-hf
+# Model configuration
+INFERENCE_MODEL_NAME=meta-llama/Llama-3.1-8B-Instruct
 
 # LLM Settings
 LLM_TEMPERATURE=0.2
@@ -171,24 +173,27 @@ MAX_CODE_LENGTH=10000
 MAX_FILE_SIZE=10485760
 
 # CORS Configuration
-CORS_ALLOW_ORIGINS=["http://localhost:5173", "http://localhost:3000"]
+CORS_ALLOW_ORIGINS=http://localhost:5173,http://localhost:3000
 EOF
 ```
 
 Or manually create `.env` with:
 
 ```bash
-# Backend API Configuration
-BACKEND_PORT=5001
-
-# Required - Enterprise/Keycloak Configuration
+# Inference endpoint (OpenAI-compatible)
 BASE_URL=https://api.example.com
+
+# Authentication (choose one path)
+# 1) API key (OpenAI-style)
+INFERENCE_API_KEY=your_api_key
+
+# 2) Keycloak client credentials (if your endpoint is protected this way)
 KEYCLOAK_CLIENT_ID=api
 KEYCLOAK_CLIENT_SECRET=your_client_secret
+KEYCLOAK_REALM=master
 
-# Required - Model Configuration
-INFERENCE_MODEL_ENDPOINT=CodeLlama-34b-Instruct-hf
-INFERENCE_MODEL_NAME=codellama/CodeLlama-34b-Instruct-hf
+# Model configuration
+INFERENCE_MODEL_NAME=meta-llama/Llama-3.1-8B-Instruct
 
 # LLM Settings
 LLM_TEMPERATURE=0.2
@@ -199,7 +204,7 @@ MAX_CODE_LENGTH=10000
 MAX_FILE_SIZE=10485760
 
 # CORS Configuration
-CORS_ALLOW_ORIGINS=["http://localhost:5173", "http://localhost:3000"]
+CORS_ALLOW_ORIGINS=http://localhost:5173,http://localhost:3000
 ```
 
 **Note**: The docker-compose.yaml file automatically loads environment variables from `.env` for the backend service.
@@ -209,7 +214,7 @@ CORS_ALLOW_ORIGINS=["http://localhost:5173", "http://localhost:3000"]
 Start both API and UI services together with Docker Compose:
 
 ```bash
-# From the rag-chatbot directory
+# From the repository root (code-translation)
 docker compose up --build
 
 # Or run in detached mode (background)

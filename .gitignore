@@ -1,3 +1,4 @@
 __pycache__/
 *.pyc
-doc-summarization.zip
+*.zip
+.DS_Store
