@@ -190,7 +190,7 @@ docker compose up -d --build
 ```
 
 The API will be available at: `http://localhost:5001`  
-The UI will be available at: `http://localhost:3000`
+The UI will be available at: `http://localhost:3000` (the API lives on 5001; the UI only serves on 3000)
 
 View logs:
 ```bash
