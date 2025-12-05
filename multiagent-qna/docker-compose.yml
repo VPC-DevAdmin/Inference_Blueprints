@@ -4,6 +4,7 @@ services:
     build:
       context: ./api
       dockerfile: Dockerfile
+    image: vectorpathconsulting/multiagent-qna-backend:latest
     container_name: multiagent-qna-backend
     ports:
       - "5001:5001"
@@ -20,6 +21,7 @@ services:
     build:
       context: ./ui
       dockerfile: Dockerfile
+    image: vectorpathconsulting/multiagent-qna-frontend:latest
     container_name: multiagent-qna-frontend
     ports:
       - "3000:3000"
@@ -29,10 +31,6 @@ services:
       - app_network
     restart: unless-stopped
 
-##################################
-# 🔗 Shared Network
-##################################
 networks:
   app_network:
     driver: bridge
-
