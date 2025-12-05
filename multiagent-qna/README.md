@@ -1,6 +1,6 @@
 ## Multi-Agent Q&A Application
 
-A sophisticated multi-agent Q&A application featuring intelligent task delegation to specialized agents with enterprise inference integration.
+Multi-agent Q&A system with a FastAPI backend and React UI. User queries are inspected for keywords and routed to specialized agents (code, RAG, or general), then answered through an OpenAI-compatible inference endpoint (Keycloak client credentials or API key).
 
 ## Table of Contents
 
@@ -8,42 +8,64 @@ A sophisticated multi-agent Q&A application featuring intelligent task delegatio
 - [Features](#features)
 - [Architecture](#architecture)
 - [Prerequisites](#prerequisites)
+- [Setup](#setup)
 - [Quick Start Deployment](#quick-start-deployment)
+- [Run with Docker Compose](#run-with-docker-compose)
+- [Local Development](#local-development)
+- [Using the Application](#using-the-application)
 - [User Interface](#user-interface)
+- [API Endpoints](#api-endpoints)
 - [Troubleshooting](#troubleshooting)
 
 ---
 ## Project Overview
 
-The multiagent-qna project is a sophisticated Question & Answer application built on a multi-agent architecture. Its core function is to receive a user's query, intelligently determine the nature of the question, and delegate it to the most suitable specialized agent for generating a high-quality response. The system is designed for enterprise environments, integrating with enterprise-grade inference APIs for its language model interactions.
+The multiagent-qna project is a Question & Answer application built on a multi-agent architecture. A FastAPI backend in `api/` receives a user's query, uses simple keyword detection to choose the most suitable specialized agent (code, retrieval, or general), and sends a prompt to an OpenAI-style inference API. A Vite/React frontend in `ui/` provides a chat interface, settings management, PDF upload for retrieval, and activity logs.
 
 ---
 
 ## Features
 
-- **Multi-Agent Architecture**: Orchestration agent that intelligently routes queries to specialized agents
-- **Specialized Agents**:
-  - **Code Agent**: Handles code-related questions and programming queries
-  - **RAG Agent**: Retrieves and answers questions from documents
-  - **Normal Agent**: Handles general questions and conversations
-- **Modern UI**: ChatGPT-like interface with settings management
-- **Enterprise Integration**: Uses enterprise-inference API for LLM interactions
-- **Configurable**: Easily configure agent roles, goals, and behavior via UI
+- **Multi-agent architecture**: Orchestration layer that routes queries to specialized agents.
+- **Specialized agents**:
+  - **Code Agent**: Handles code-related questions and programming queries.
+  - **RAG Agent**: Retrieves and answers questions from documents.
+  - **Normal Agent**: Handles general questions and conversations.
+- **PDF ingestion + retrieval**: Upload PDFs, chunk text, embed with the configured inference API, and store vectors in `api/rag_index` (FAISS).
+- **Modern UI**: ChatGPT-like interface with settings management and logs.
+- **Enterprise integration**: Uses Keycloak client credentials or an inference API key for OpenAI-compatible endpoints.
+- **Configurable**: Configure agent roles, goals, backstories, and verbosity via UI or `/config`.
+- **Activity logs**: Recent agent activity available via `/logs` and the UI Logs panel.
 
 ---
 
 ## Architecture
 
-Below is the multi-agent system architecture showing how user queries are intelligently routed to specialized agents. The orchestration layer analyzes incoming queries using keyword detection and delegates them to the appropriate agent (Code, RAG, or Normal) for processing, ensuring each query is handled by the most qualified specialist.
+High-level services:
+```mermaid
+graph TD
+    UI[React/Vite UI] -->|/api| API[FastAPI Backend]
+    API --> ROUTER[Agent Router (keyword rules)]
+    ROUTER --> CODE[Code Agent]
+    ROUTER --> RAG[RAG Agent]
+    ROUTER --> GEN[General Agent]
+    RAG -->|upload/search| STORE[FAISS Vector Store (rag_index)]
+    STORE -->|embeddings via| LLM[OpenAI-compatible Inference API]
+    CODE --> LLM
+    GEN --> LLM
+    LLM --> API
+    API --> UI
+```
 
+Routing and retrieval flow:
 ```mermaid
 graph TD
     A[User Interface] -->|Query| B[FastAPI Backend]
     B --> C[Orchestration Logic]
     C -->|Keyword Analysis| D{Agent Router}
 
-    D -->|Code Keywords| E[Code Agent]
-    D -->|RAG Keywords| F[RAG Agent]
+    D -->|Code keywords| E[Code Agent]
+    D -->|RAG keywords| F[RAG Agent]
     D -->|Default| G[Normal Agent]
 
     F -->|Search| H[FAISS Vector Store]
@@ -56,121 +78,113 @@ graph TD
     I -->|Response| B
     B -->|Answer| A
 
-    J[Keycloak Auth] -.->|Token| I
+    J[Keycloak/Auth] -.->|Token| I
     K[PDF Upload] -->|Documents| H
-
-    style C fill:#e1f5ff
-    style D fill:#fff4e1
-    style E fill:#ffe1e1
-    style F fill:#e1ffe1
-    style G fill:#f0e1ff
-    style I fill:#ffebe1
 ```
 
 The application consists of:
-1. **Orchestration Agent**: Analyzes user queries and delegates to appropriate specialized agents
-2. **Specialized Agents**: Each handles a specific domain (code, RAG, general)
-3. **API Layer**: FastAPI backend with enterprise-inference integration
-4. **UI**: React-based chat interface with settings management
+1. **Orchestration agent**: Analyzes user queries and delegates to specialized agents.
+2. **Specialized agents**: Each handles a specific domain (code, RAG, general).
+3. **API layer**: FastAPI backend with enterprise-inference/OpenAI-compatible integration.
+4. **UI**: React-based chat interface with settings and logs.
 
-**Service Components:**
+Service components:
+1. **React Web UI (port 3000)** - Chat interface with settings management.
+2. **FastAPI Backend (port 5001)** - Orchestrates multi-agent system, performs keyword routing, and manages FAISS vector store for document retrieval.
 
-1. **React Web UI (Port 3000)** -  Provides ChatGPT-like interface with settings management for configuring agent roles, goals, and behavior
-
-2. **FastAPI Backend (Port 5001)** - Orchestrates multi-agent system, analyzes queries using keyword detection, delegates to specialized agents (Code, RAG, Normal), and manages FAISS vector store for document retrieval
-
-**Typical Flow:**
-
+Typical flow:
 1. User submits a query through the chat interface.
-2. The FastAPI backend receives the query and passes it to the orchestration logic.
+2. FastAPI receives the query and passes it to the orchestration logic.
 3. The orchestration logic analyzes the query using keyword detection to determine intent.
 4. The agent router delegates the query to the appropriate specialized agent:
-   - **Code-related queries** (keywords: code, function, debug, etc.) → Code Agent
-   - **Document-based queries** (keywords: document, PDF, search, etc.) → RAG Agent
-   - **General queries** → Normal Agent
+   - **Code-related queries** (keywords: code, function, debug, etc.) -> Code Agent
+   - **Document-based queries** (keywords: document, PDF, search, etc.) -> RAG Agent
+   - **General queries** -> Normal Agent
 5. If RAG Agent is selected:
-   - Searches the FAISS vector store for relevant document context
-   - Retrieves matching chunks to augment the prompt
+   - Searches the FAISS vector store for relevant document context.
+   - Retrieves matching chunks to augment the prompt.
 6. The selected agent constructs a specialized prompt with its role, goal, and context.
-7. The system authenticates with Keycloak and obtains an access token.
-8. The agent calls the enterprise LLM API with the token and specialized prompt.
-9. The LLM (Llama-3.1-8B-Instruct) generates a response tailored to the agent's expertise.
-10. The response is returned to the user via the UI with agent attribution showing which specialist handled the query.
+7. The system authenticates using Keycloak client credentials if configured, or uses the provided inference API key.
+8. The agent calls the inference API with the token/key and specialized prompt.
+9. The model (for example `meta-llama/Llama-3.1-8B-Instruct`) generates a response tailored to the agent's expertise.
+10. The response returns to the UI with agent attribution showing which specialist handled the query.
 
 ---
 
 ## Prerequisites
 
-### System Requirements
+### System requirements
+- Docker and Docker Compose
+- Access to an OpenAI-compatible inference endpoint (Keycloak client credentials or API key)
 
-Before you begin, ensure you have the following installed:
-
-- **Docker and Docker Compose**
-- **Enterprise inference endpoint access** (Keycloak authentication)
-
-### Verify Docker Installation
-
+### Verify Docker installation
 ```bash
-# Check Docker version
 docker --version
-
-# Check Docker Compose version
 docker compose version
-
-# Verify Docker is running
 docker ps
 ```
+
+---
+
+## Setup
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/VPC-Repo/Dell_Inference_Blueprints.git
+   cd Dell_Inference_Blueprints/multiagent-qna
+   ```
+
+2. **Create the API environment file**
+   ```bash
+   cp api/env.example api/.env
+   ```
+   Update `api/.env` with your values:
+   ```env
+   BASE_URL=https://your-inference-host
+   KEYCLOAK_REALM=master
+   KEYCLOAK_CLIENT_ID=api
+   KEYCLOAK_CLIENT_SECRET=your_secret_here
+   # Or use a direct key instead of Keycloak:
+   # INFERENCE_API_KEY=your_api_key
+   EMBEDDING_MODEL_ENDPOINT=bge-base-en-v1.5
+   INFERENCE_MODEL_ENDPOINT=Llama-3.1-8B-Instruct
+   EMBEDDING_MODEL_NAME=bge-base-en-v1.5
+   INFERENCE_MODEL_NAME=meta-llama/Llama-3.1-8B-Instruct
+   ```
+   Manual creation alternative:
+   ```bash
+   mkdir -p api
+   cat > api/.env << 'EOF'
+   BASE_URL=https://your-inference-host
+   KEYCLOAK_REALM=master
+   KEYCLOAK_CLIENT_ID=api
+   KEYCLOAK_CLIENT_SECRET=your_secret_here
+   EMBEDDING_MODEL_ENDPOINT=bge-base-en-v1.5
+   INFERENCE_MODEL_ENDPOINT=Llama-3.1-8B-Instruct
+   EMBEDDING_MODEL_NAME=bge-base-en-v1.5
+   INFERENCE_MODEL_NAME=meta-llama/Llama-3.1-8B-Instruct
+   # INFERENCE_API_KEY=your_api_key
+   EOF
+   ```
+   `config.py` enforces that at least one of `KEYCLOAK_CLIENT_SECRET` or `INFERENCE_API_KEY` (or `OPENAI_API_KEY`, though the API client reads `INFERENCE_API_KEY`) is set.
+
 ---
 
 ## Quick Start Deployment
 
-### Clone the Repository
-
+### Clone the repository
 ```bash
 git clone https://github.com/VPC-Repo/Dell_Inference_Blueprints.git
 cd Dell_Inference_Blueprints/multiagent-qna
 ```
 
-### Set up the Environment
+### Set up the environment
+Create `api/.env` as shown above (copy `api/env.example` or create it manually).
 
-This application requires an `.env` file in the `api` directory for proper configuration. Create it with the commands below:
-
-```bash
-# Create the .env file in the api directory
-mkdir -p api
-cat > api/.env << EOF
-BASE_URL=https://your-enterprise-inference-url.com
-KEYCLOAK_CLIENT_ID=your_client_id
-KEYCLOAK_CLIENT_SECRET=your_client_secret
-EMBEDDING_MODEL_ENDPOINT=bge-base-en-v1.5
-INFERENCE_MODEL_ENDPOINT=Llama-3.1-8B-Instruct
-EMBEDDING_MODEL_NAME=bge-base-en-v1.5
-INFERENCE_MODEL_NAME=meta-llama/Llama-3.1-8B-Instruct
-EOF
-```
-
-Or manually create `api/.env` with:
-
-```bash
-BASE_URL=https://your-enterprise-inference-url.com
-KEYCLOAK_CLIENT_ID=your_client_id
-KEYCLOAK_CLIENT_SECRET=your_client_secret
-EMBEDDING_MODEL_ENDPOINT=bge-base-en-v1.5
-INFERENCE_MODEL_ENDPOINT=Llama-3.1-8B-Instruct
-EMBEDDING_MODEL_NAME=bge-base-en-v1.5
-INFERENCE_MODEL_NAME=meta-llama/Llama-3.1-8B-Instruct
-```
-
-**Note**: The docker-compose.yml file automatically loads environment variables from `./api/.env` for the backend service.
-
-### Running the Application
-
+### Running the application
 Start both API and UI services together with Docker Compose:
-
 ```bash
-# From the rag-chatbot directory
 docker compose up --build
-
 # Or run in detached mode (background)
 docker compose up -d --build
 ```
@@ -178,74 +192,129 @@ docker compose up -d --build
 The API will be available at: `http://localhost:5001`  
 The UI will be available at: `http://localhost:3000`
 
-**View logs**:
-
+View logs:
 ```bash
-# All services
-docker compose logs -f
-
-# Backend only
-docker compose logs -f backend
-
-# Frontend only
-docker compose logs -f frontend
+docker compose logs -f          # all services
+docker compose logs -f backend  # backend only
+docker compose logs -f frontend # frontend only
 ```
 
-**Verify the services are running**:
-
+Verify the services:
 ```bash
-# Check API health
 curl http://localhost:5001/health
-
-# Check if containers are running
 docker compose ps
 ```
+
 ---
 
-## User Interface
+## Run with Docker Compose
 
-**Using the Application**
+From the repository root:
+```bash
+docker compose up --build
+# or detached
+docker compose up -d --build
+```
 
-Make sure you are at the localhost:3000 url
+- Backend: `http://localhost:5001`
+- Frontend: `http://localhost:3000`
 
-You will be directed to the main page which has each feature
+Logs and status:
+```bash
+docker compose logs -f
+docker compose logs -f backend
+docker compose logs -f frontend
+docker compose ps
+curl http://localhost:5001/health
+```
 
-![User Interface](images/ui.png)
-
-### Chat Interface
-
-1. Navigate to the chat interface
-2. Type your question in the input box
-3. The orchestration agent will analyze your query and route it to the appropriate specialized agent
-4. View the response with agent attribution
-
-### Settings Page
-
-Configure agents:
-- **Orchestration Agent**: Role, goal, and backstory
-- **Code Agent**: Code-specific configuration
-- **RAG Agent**: Document retrieval settings
-- **Normal Agent**: General conversation settings
-
-**UI Configuration**
-
-When running with Docker Compose, the UI automatically connects to the backend API. The frontend is available at `http://localhost:3000` and the API at `http://localhost:5001`.
-
-For production deployments, you may want to configure a reverse proxy or update the API URL in the frontend configuration.
-
-### Stopping the Application
-
-
+Stop the stack:
 ```bash
 docker compose down
 ```
 
 ---
 
+## Local Development
+
+Backend:
+```bash
+cd api
+python -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
+pip install -r requirements.txt
+cp env.example .env  # if you haven't created one
+uvicorn server:app --reload --host 0.0.0.0 --port 5001
+```
+
+Frontend:
+```bash
+cd ui
+npm install
+VITE_API_URL=http://localhost:5001 npm run dev -- --host --port 3000
+```
+`VITE_API_URL` points the UI directly at the locally running backend; when running in Docker, the Vite proxy uses the `backend` service name instead.
+
+---
+
+## Using the Application
+
+- **Chat:** Ask coding, document, or general questions. The response badge shows which agent handled it.
+- **Document ingestion:** Use the "Upload PDF" button in the chat header to index a PDF. The FAISS index lives in `api/rag_index`; the chat UI shows how many documents are indexed.
+- **Settings:** Customize each agent's role, goal, backstory, max iterations, and verbosity on the Settings page (`/config` API).
+- **Logs:** Open the Logs panel from the header to view recent agent activity (`/logs` API).
+- **Health check:** `curl http://localhost:5001/health`
+
+---
+
+## User Interface
+
+Make sure you are at `http://localhost:3000`. You will land on the main page with each feature.
+
+![User Interface](images/ui.png)
+
+### Chat Interface
+1. Navigate to the chat interface.
+2. Type your question in the input box.
+3. The orchestration agent analyzes your query and routes it to the appropriate specialized agent.
+4. View the response with agent attribution.
+
+### Settings Page
+Configure agents:
+- **Orchestration Agent**: Role, goal, and backstory.
+- **Code Agent**: Code-specific configuration.
+- **RAG Agent**: Document retrieval settings.
+- **Normal Agent**: General conversation settings.
+
+UI configuration:
+When running with Docker Compose, the UI automatically connects to the backend API. The frontend is available at `http://localhost:3000` and the API at `http://localhost:5001`. For production deployments, configure a reverse proxy or update the API URL in the frontend configuration.
+
+### Stopping the application
+```bash
+docker compose down
+```
+
+---
+
+## API Endpoints
+
+- `GET /health` - service status and whether auth is configured
+- `POST /chat` - `{ "message": "...", "agent_config": { ... } }` -> `{ "response": "...", "agent": "code_agent|rag_agent|normal_agent" }`
+- `GET /config` and `POST /config` - read/update agent defaults
+- `GET /logs` - recent agent activity
+- `POST /rag/upload` - multipart PDF upload to build the FAISS index
+- `GET /rag/status` - index status
+- `DELETE /rag/index` - remove the current index
+
+Quick test:
+```bash
+curl -X POST http://localhost:5001/chat \
+  -H "Content-Type: application/json" \
+  -d '{"message": "How do I write a Python function?"}'
+```
+
+---
+
 ## Troubleshooting
 
-For comprehensive troubleshooting guidance, common issues, and solutions, refer to:
-
-[TROUBLESHOOTING.md](TROUBLESHOOTING.md)
-
-
+See [QUICKSTART.md](QUICKSTART.md) for the 5-minute setup and [TROUBLESHOOTING.md](TROUBLESHOOTING.md) for common fixes (auth, networking, and Docker tips).
