@@ -12,15 +12,6 @@ import config
 logger = logging.getLogger(__name__)
 
 
-import logging
-import requests
-import httpx
-from typing import Optional
-import config
-
-logger = logging.getLogger(__name__)
-
-
 class APIClient:
     """
     Client for handling authentication and API calls
@@ -94,7 +85,7 @@ class APIClient:
 
         return OpenAI(
             api_key=self.token or "",
-            base_url=f"{self.base_url}/{config.EMBEDDING_MODEL_ENDPOINT}/v1",
+            base_url=f"{self.base_url}/v1",
             http_client=self.http_client,
         )
 
@@ -107,7 +98,7 @@ class APIClient:
 
         return OpenAI(
             api_key=self.token or "",
-            base_url=f"{self.base_url}/{config.INFERENCE_MODEL_ENDPOINT}/v1",
+            base_url=f"{self.base_url}/v1",
             http_client=self.http_client,
         )
 
