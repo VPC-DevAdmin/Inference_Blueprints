@@ -10,6 +10,7 @@ load_dotenv()
 
 # API Configuration
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+INFERENCE_API_KEY = os.getenv("INFERENCE_API_KEY")
 
 # Custom API Configuration
 BASE_URL = os.getenv("BASE_URL", "https://api.example.com")
@@ -24,9 +25,11 @@ EMBEDDING_MODEL_NAME = os.getenv("EMBEDDING_MODEL_NAME", "bge-base-en-v1.5")
 INFERENCE_MODEL_NAME = os.getenv("INFERENCE_MODEL_NAME", "meta-llama/Llama-3.1-8B-Instruct")
 
 # Validate required configuration
-if not OPENAI_API_KEY and not KEYCLOAK_CLIENT_SECRET:
-    raise ValueError("Either OPENAI_API_KEY or KEYCLOAK_CLIENT_SECRET must be set in environment variables")
-
+if not (OPENAI_API_KEY or KEYCLOAK_CLIENT_SECRET or INFERENCE_API_KEY):
+     raise ValueError(
+        "You must set one of OPENAI_API_KEY, KEYCLOAK_CLIENT_SECRET, or INFERENCE_API_KEY"
+    )
+    
 # Application Settings
 APP_TITLE = "Multi-Agent Q&A"
 APP_DESCRIPTION = "A multi-agent Q&A system using CrewAI"
