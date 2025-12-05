@@ -44,13 +44,22 @@ The multiagent-qna project is a Question & Answer application built on a multi-a
 High-level services:
 ```mermaid
 graph TD
-    UI[React/Vite UI] -->|/api| API[FastAPI Backend]
-    API --> ROUTER[Agent Router (keyword rules)]
-    ROUTER --> CODE[Code Agent]
-    ROUTER --> RAG[RAG Agent]
-    ROUTER --> GEN[General Agent]
-    RAG -->|upload/search| STORE[FAISS Vector Store (rag_index)]
-    STORE -->|embeddings via| LLM[OpenAI-compatible Inference API]
+    UI[React/Vite UI]
+    API[FastAPI Backend]
+    ROUTER[Agent Router]
+    CODE[Code Agent]
+    RAG[RAG Agent]
+    GEN[General Agent]
+    STORE[FAISS Vector Store]
+    LLM[OpenAI-compatible Inference API]
+
+    UI -->|/api| API
+    API --> ROUTER
+    ROUTER --> CODE
+    ROUTER --> RAG
+    ROUTER --> GEN
+    RAG -->|upload/search| STORE
+    STORE -->|embeddings via| LLM
     CODE --> LLM
     GEN --> LLM
     LLM --> API
