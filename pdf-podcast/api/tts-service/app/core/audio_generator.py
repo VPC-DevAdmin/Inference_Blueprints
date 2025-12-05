@@ -19,7 +19,8 @@ class AudioGenerator:
         self,
         openai_api_key: str,
         output_dir: Path,
-        tts_model: str = "tts-1-hd"
+        tts_model: str = "tts-1-hd",
+        tts_base_url: Optional[str] = None,
     ):
         """
         Initialize audio generator
@@ -29,7 +30,7 @@ class AudioGenerator:
             output_dir: Directory for output files
             tts_model: TTS model to use
         """
-        self.tts_client = TTSClient(openai_api_key, model=tts_model)
+        self.tts_client = TTSClient(openai_api_key, base_url=tts_base_url, model=tts_model)
         self.audio_mixer = AudioMixer()
         self.voice_manager = VoiceManager()
         self.output_dir = Path(output_dir)

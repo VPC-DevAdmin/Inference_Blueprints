@@ -23,6 +23,10 @@ class Settings(BaseSettings):
     AUDIO_BITRATE: str = "192k"
     SILENCE_DURATION_MS: int = 500
 
+    # OpenAI compatible endpoint for TTS
+    TTS_BASE_URL: str = "https://api.openai.com"
+    TTS_API_KEY: Optional[str] = None
+
     # Processing
     MAX_CONCURRENT_REQUESTS: int = 5
     MAX_SCRIPT_LENGTH: int = 100  # Max dialogue turns

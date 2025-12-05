@@ -18,6 +18,7 @@ OUTPUT_DIR = Path(settings.OUTPUT_DIR)
 audio_generator = AudioGenerator(
     openai_api_key=settings.OPENAI_API_KEY or "",
     output_dir=OUTPUT_DIR,
+    tts_base_url=settings.TTS_BASE_URL,
     tts_model=settings.TTS_MODEL
 )
 

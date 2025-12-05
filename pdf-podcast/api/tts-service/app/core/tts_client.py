@@ -11,15 +11,19 @@ class TTSClient:
     Client for OpenAI Text-to-Speech API
     """
 
-    def __init__(self, api_key: str, model: str = "tts-1-hd"):
+    def __init__(self, api_key: str, base_url: str,model: str = "tts-1-hd"):
         """
         Initialize TTS client
 
         Args:
             api_key: OpenAI API key
+            base_url: Base URL for TTS API
             model: TTS model (tts-1 or tts-1-hd)
         """
-        self.client = openai.OpenAI(api_key=api_key)
+        if not base_url:
+            raise ValueError("TTSClient requires a base_url but none was provided.")
+
+        self.client = openai.OpenAI(api_key=api_key, base_url=base_url)
         self.model = model
 
     async def generate_speech(

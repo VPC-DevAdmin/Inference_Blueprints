@@ -1,5 +1,6 @@
 services:
   pdf-service:
+    image: vectorpathconsulting/pdf-podcast-pdf-service:latest
     build:
       context: ./api/pdf-service
       dockerfile: Dockerfile
@@ -13,6 +14,7 @@ services:
     restart: unless-stopped
 
   llm-service:
+    image: vectorpathconsulting/pdf-podcast-llm-service:latest
     build:
       context: ./api/llm-service
       dockerfile: Dockerfile
@@ -28,6 +30,7 @@ services:
     restart: unless-stopped
 
   tts-service:
+    image: vectorpathconsulting/pdf-podcast-tts-service:latest
     build:
       context: ./api/tts-service
       dockerfile: Dockerfile
@@ -45,6 +48,7 @@ services:
 
   # backend Gateway (Python)
   backend:
+    image: vectorpathconsulting/pdf-podcast-backend:latest
     build:
       context: .
       dockerfile: Dockerfile
@@ -63,9 +67,9 @@ services:
       - app_network
     restart: unless-stopped
 
-
   # Frontend (React)
   frontend:
+    image: vectorpathconsulting/pdf-podcast-frontend:latest
     build:
       context: ./ui
       dockerfile: Dockerfile
