@@ -19,23 +19,6 @@ export const Header = () => {
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-            {/* Custom Logo - Replace src with your actual logo */}
-            <img
-              src="/app-logo.png"
-              alt="PDF to Podcast"
-              className="h-10 w-10 object-contain"
-              onError={(e) => {
-                // Fallback to gradient box if image not found
-                e.target.style.display = 'none';
-                e.target.nextSibling.style.display = 'flex';
-              }}
-            />
-            <div
-              className="bg-gradient-to-br from-primary-600 to-secondary-600 p-2 rounded-lg hidden"
-              style={{ display: 'none' }}
-            >
-              <div className="w-6 h-6 bg-white rounded" />
-            </div>
             <span className="text-xl font-bold bg-gradient-to-r from-primary-600 to-secondary-600 bg-clip-text text-transparent">
               PDF to Podcast
             </span>
