@@ -16,6 +16,7 @@ class Settings(BaseSettings):
 
     # Direct API key for the gateway
     TTS_API_KEY: Optional[str] = None
+    
 
     # Optional Keycloak client credentials
     KEYCLOAK_REALM: str = "master"

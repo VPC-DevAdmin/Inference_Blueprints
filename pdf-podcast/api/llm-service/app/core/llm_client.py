@@ -11,25 +11,23 @@ logger = logging.getLogger(__name__)
 
 class LLMClient:
     """
-    Client for interacting with a local OpenAI-compatible API.
+    Client for interacting with an OpenAI compatible chat endpoint behind BASE_URL.
     """
 
     def __init__(
         self,
         openai_api_key: Optional[str] = None,  # kept for signature compatibility, ignored
-        default_model: str = "gpt-4o-mini",
+        default_model: str = "unused",
     ):
         """
         Initialize LLM client.
 
-        Only uses a local OpenAI-compatible endpoint behind BASE_URL.
-
         Auth priority:
           1) Keycloak (if BASE_URL + Keycloak creds)
           2) INFERENCE_API_KEY
+
         """
 
-        # Base URL for your local gateway (no trailing slash)
         self.base_url = settings.BASE_URL.rstrip("/") if settings.BASE_URL else None
         self.client: Optional[OpenAI] = None
         self.api_key: Optional[str] = None
@@ -37,50 +35,46 @@ class LLMClient:
 
         if not self.base_url:
             logger.error(
-                "LLMClient: BASE_URL is not set. Local inference endpoint is required."
+                "LLMClient: BASE_URL is not set. Inference gateway URL is required."
             )
             return
 
-        # 1) Try Keycloak first (if creds present)
+        # 1) Try Keycloak first
         if settings.KEYCLOAK_CLIENT_ID and settings.KEYCLOAK_CLIENT_SECRET:
             token = self._try_keycloak_token()
             if token:
                 self.api_key = token
                 self.auth_mode = "keycloak"
-                logger.info("LLMClient: using Keycloak access token for local gateway")
+                logger.info("LLMClient: using Keycloak access token for gateway")
 
-        # 2) Fall back to INFERENCE_API_KEY
-        if not self.api_key and getattr(settings, "INFERENCE_API_KEY", None):
+        # 2) Fall back to static inference key
+        if not self.api_key and settings.INFERENCE_API_KEY:
             self.api_key = settings.INFERENCE_API_KEY
             self.auth_mode = "inference_api_key"
-            logger.info("LLMClient: using INFERENCE_API_KEY for local gateway")
+            logger.info("LLMClient: using INFERENCE_API_KEY")
 
         if not self.api_key:
             logger.error(
                 "LLMClient: no auth configured. "
-                "Set either KEYCLOAK_CLIENT_SECRET or INFERENCE_API_KEY."
+                "Set KEYCLOAK_CLIENT_SECRET or INFERENCE_API_KEY."
             )
             return
 
-        # Model name exposed by your local gateway
-        self.default_model = getattr(settings, "INFERENCE_MODEL_NAME", None) or default_model
+        self.default_model = settings.INFERENCE_MODEL_NAME or default_model
 
-        # Create a single OpenAI-style client pointed at your gateway /v1
         self.client = OpenAI(
             api_key=self.api_key,
             base_url=f"{self.base_url}/v1",
         )
         logger.info(
-            "LLMClient: configured local OpenAI-compatible client at %s/v1 (auth_mode=%s)",
+            "LLMClient: configured OpenAI compatible client at %s/v1 (auth_mode=%s)",
             self.base_url,
             self.auth_mode,
         )
 
     def _try_keycloak_token(self) -> Optional[str]:
         """
-        Try to obtain an access token from Keycloak via the local gateway.
-
-        Assumes a /token endpoint exposed behind BASE_URL.
+        Obtain an access token from Keycloak via the gateway /token endpoint.
         """
         if not self.base_url:
             return None
@@ -115,18 +109,16 @@ class LLMClient:
         stop=stop_after_attempt(3),
         wait=wait_exponential(multiplier=1, min=4, max=10),
     )
-    async def generate_with_openai(
+    async def generate_chat(
         self,
         system_prompt: str,
         user_prompt: str,
         model: Optional[str] = None,
         temperature: float = 0.7,
-        max_tokens: int = 4000,
+        max_tokens: int = settings.MAX_TOKENS,
     ) -> str:
         """
-        Generate text using the local OpenAI-compatible endpoint.
-
-        Always uses /v1/chat/completions behind BASE_URL.
+        Generate text using /v1/chat/completions at BASE_URL.
         """
         if not self.client:
             raise ValueError(
@@ -165,15 +157,14 @@ class LLMClient:
         self,
         system_prompt: str,
         user_prompt: str,
-        provider: str = "openai",
         **kwargs,
     ) -> str:
         """
         Public wrapper used by the rest of the app.
 
-        provider is ignored and kept only for compatibility.
+        provider is kept only for compatibility and is ignored.
         """
-        return await self.generate_with_openai(
+        return await self.generate_chat(
             system_prompt=system_prompt,
             user_prompt=user_prompt,
             **kwargs,
@@ -181,7 +172,9 @@ class LLMClient:
 
     def count_tokens(self, text: str, model: str = "gpt-4") -> int:
         """
-        Estimate token count for text.
+        Estimate token count.
+
+        Uses tiktoken as a rough approximation. This does not talk to OpenAI.
         """
         try:
             import tiktoken
@@ -190,10 +183,7 @@ class LLMClient:
             return len(encoding.encode(text))
         except Exception as e:
             logger.error(f"Token counting failed: {str(e)}")
-            return len(text) // 4  # rough estimate
+            return len(text) // 4
 
-    def is_available(self, provider: str = "openai") -> bool:
-        """
-        Check if LLM client is available (local gateway only).
-        """
+    def is_available(self, provider: str = "local") -> bool:
         return self.client is not None

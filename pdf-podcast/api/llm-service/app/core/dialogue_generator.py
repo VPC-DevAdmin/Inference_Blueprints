@@ -13,18 +13,15 @@ class DialogueGenerator:
 
     def __init__(
         self,
-        openai_api_key: Optional[str] = None,
-        default_model: str = "gpt-4-turbo-preview"
+        default_model: str = settings.INFERENCE_MODEL_NAME,
     ):
         """
         Initialize dialogue generator
 
         Args:
-            openai_api_key: OpenAI API key
             default_model: Default model to use
         """
         self.llm_client = LLMClient(
-            openai_api_key=openai_api_key,
             default_model=default_model
         )
         self.prompt_builder = PromptBuilder()
@@ -37,7 +34,6 @@ class DialogueGenerator:
         guest_name: str = "Guest",
         tone: str = "conversational",
         max_length: int = 2000,
-        provider: str = "openai",
         **kwargs
     ) -> Dict:
         """
@@ -49,7 +45,6 @@ class DialogueGenerator:
             guest_name: Guest name
             tone: Conversation tone
             max_length: Target word count
-            provider: LLM provider to use
             **kwargs: Additional parameters
 
         Returns:
@@ -75,7 +70,6 @@ class DialogueGenerator:
             response = await self.llm_client.generate(
                 system_prompt=prompts["system"],
                 user_prompt=prompts["user"],
-                provider=provider,
                 temperature=0.7,
                 max_tokens=4000
             )
@@ -118,14 +112,12 @@ class DialogueGenerator:
     async def refine_script(
         self,
         script: List[Dict[str, str]],
-        provider: str = "openai"
     ) -> Dict:
         """
         Refine an existing script
 
         Args:
             script: Current script
-            provider: LLM provider
 
         Returns:
             Dict with refined script and metadata
@@ -140,7 +132,6 @@ class DialogueGenerator:
             response = await self.llm_client.generate(
                 system_prompt=prompts["system"],
                 user_prompt=prompts["user"],
-                provider=provider,
                 temperature=0.5,  # Lower temperature for refinement
                 max_tokens=4000
             )

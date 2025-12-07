@@ -30,7 +30,7 @@ class AudioGenerator:
             output_dir: Directory for output files
             tts_model: TTS model to use
         """
-        self.tts_client = TTSClient(openai_api_key, base_url=tts_base_url, model=tts_model)
+        self.tts_client = TTSClient(base_url=tts_base_url, model=tts_model)
         self.audio_mixer = AudioMixer()
         self.voice_manager = VoiceManager()
         self.output_dir = Path(output_dir)
