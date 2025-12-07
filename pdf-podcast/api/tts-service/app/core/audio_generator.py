@@ -17,7 +17,6 @@ class AudioGenerator:
 
     def __init__(
         self,
-        openai_api_key: str,
         output_dir: Path,
         tts_model: str = "tts-1-hd",
         tts_base_url: Optional[str] = None,

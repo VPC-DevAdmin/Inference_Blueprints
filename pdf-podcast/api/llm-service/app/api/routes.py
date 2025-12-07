@@ -12,7 +12,6 @@ router = APIRouter()
 # Initialize dialogue generator
 # We always use the local OpenAI compatible gateway model
 dialogue_generator = DialogueGenerator(
-    openai_api_key=None,
     default_model=settings.INFERENCE_MODEL_NAME,
 )
 
