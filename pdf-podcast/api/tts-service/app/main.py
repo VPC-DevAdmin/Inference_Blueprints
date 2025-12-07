@@ -50,17 +50,41 @@ app.include_router(router, tags=["Audio Generation"])
 async def startup_event():
     """Run on application startup"""
     logger.info("TTS Audio Generation Service starting up...")
-    logger.info(f"Service running on port {settings.SERVICE_PORT}")
+    logger.info("Service running on port %s", getattr(settings, "SERVICE_PORT", 8003))
 
-    # Check API key
-    if settings.OPENAI_API_KEY:
-        logger.info("OpenAI API key configured")
+    # Report TTS gateway configuration
+    if getattr(settings, "TTS_BASE_URL", None):
+        auth_modes = []
+
+        # Shared Keycloak config (same pattern as LLM service)
+        if getattr(settings, "KEYCLOAK_CLIENT_ID", None) and getattr(
+            settings, "KEYCLOAK_CLIENT_SECRET", None
+        ):
+            auth_modes.append("Keycloak")
+
+        if getattr(settings, "TTS_API_KEY", None):
+            auth_modes.append("static API key")
+
+        if auth_modes:
+            auth_desc = " + ".join(auth_modes)
+        else:
+            auth_desc = "no auth"
+
+        logger.info(
+            "TTS gateway configured at %s (%s)",
+            settings.TTS_BASE_URL,
+            auth_desc,
+        )
     else:
-        logger.warning("OpenAI API key not found - service will not function properly")
+        logger.warning(
+            "TTS_BASE_URL is not set. TTSClient will not be able to reach a gateway "
+            "until this is configured."
+        )
 
     # Create output directory
     static_dir.mkdir(parents=True, exist_ok=True)
-    logger.info(f"Output directory: {static_dir.absolute()}")
+    logger.info("Output directory: %s", static_dir.absolute())
+
 
 @app.on_event("shutdown")
 async def shutdown_event():
