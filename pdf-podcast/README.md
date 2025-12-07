@@ -1,6 +1,6 @@
 ## PDF to Podcast Generator
 
-AI-powered application that transforms PDF documents into engaging podcast-style audio conversations. This application can be deployed using either OpenAI APIs or enterprise inference endpoints.
+AI-powered application that transforms PDF documents into engaging podcast-style audio conversations. This application runs against an OpenAI-compatible enterprise inference endpoint for LLMs and an OpenAI-compatible TTS API.
 
 ## Table of Contents
 
@@ -24,8 +24,8 @@ PDF to Podcast Generator is a microservices-based application that converts PDF 
 
 - Digital PDF text extraction with support for text-based PDFs up to 10 MB
 - AI-powered script generation with natural host and guest conversation format
-- Supports multiple LLM backends: OpenAI GPT-4 or custom enterprise inference endpoints
-- High-quality audio generation using OpenAI TTS with 6 different voice options
+- Supports OpenAI-compatible enterprise inference endpoints for LLMs
+- High-quality audio generation using an OpenAI-compatible TTS API with 6 different voice options
 - Modern React web interface with real-time progress tracking
 - Integrated audio player with waveform visualization
 - Project management and organization with download functionality
@@ -35,7 +35,7 @@ PDF to Podcast Generator is a microservices-based application that converts PDF 
 
 ## Architecture
 
-This application uses a microservices architecture where each service handles a specific part of the podcast generation process. The React frontend communicates with a backend gateway that orchestrates requests across three specialized services: PDF processing, script generation, and audio synthesis. The LLM service can be configured to use either OpenAI GPT models or custom enterprise inference endpoints with Keycloak authentication, while the TTS service uses OpenAI for audio generation. This separation allows for flexible deployment options and easy scaling of individual components.
+This application uses a microservices architecture where each service handles a specific part of the podcast generation process. The React frontend communicates with a backend gateway that orchestrates requests across three specialized services: PDF processing, script generation, and audio synthesis. The LLM service uses an OpenAI-compatible enterprise inference endpoint (with Keycloak or API key authentication), while the TTS service uses an OpenAI-compatible TTS API for audio generation. This separation allows for flexible deployment options and easy scaling of individual components.
 
 ```mermaid
 graph TB
@@ -54,8 +54,8 @@ graph TB
     end
 
     subgraph "External Services"
-        F[OpenAI GPT-4 / Enterprise LLM]
-        G[OpenAI TTS]
+        F[Enterprise LLM Gateway<br/>OpenAI-compatible]
+        G[OpenAI-compatible TTS]
     end
 
     A -->|HTTP POST| B
@@ -90,9 +90,9 @@ This application is built using FastAPI microservices architecture with Docker c
 
 3. **PDF Service (Port 8001)** - Extracts text from PDF files using PyPDF2 and pdfplumber libraries (no external API dependencies)
 
-4. **LLM Service (Port 8002)** - Generates podcast dialogue scripts using OpenAI GPT-4 or custom enterprise inference endpoints with Keycloak authentication
+4. **LLM Service (Port 8002)** - Generates podcast dialogue scripts using an OpenAI-compatible enterprise inference endpoint (Keycloak or API key)
 
-5. **TTS Service (Port 8003)** - Synthesizes audio using OpenAI TTS API with multiple voice support and audio mixing
+5. **TTS Service (Port 8003)** - Synthesizes audio using an OpenAI-compatible TTS API with multiple voice support and audio mixing
 
 ---
 
@@ -104,7 +104,7 @@ Before you begin, ensure you have the following installed:
 
 - **Docker and Docker Compose**
 - **Enterprise inference endpoint access** (Keycloak authentication)
-- **OpenAPI KEY** (Need OpenAPI Key as enterprise inference doesn't have supported models for Audio and Video )
+- **TTS API key** (OpenAI-compatible; required for audio generation)
 
 ### Verify Docker Installation
 
@@ -146,7 +146,7 @@ No changes needed. Uses default values.
 cp api/tts-service/.env.example api/tts-service/.env
 ```
 
-Open `api/tts-service/.env` and replace `your-openai-api-key-here` with your actual OpenAI API key.
+Open `api/tts-service/.env` and replace `your-openai-api-key-here` with your actual OpenAI-compatible TTS API key (OpenAI works by default).
 
 Available TTS voices: alloy, echo, fable, onyx, nova, shimmer. Default voices are alloy (host) and nova (guest).
 
@@ -159,8 +159,8 @@ cp api/llm-service/.env.example api/llm-service/.env
 - Replace these placeholder values:
   - `BASE_URL` with your enterprise API endpoint
   - `KEYCLOAK_CLIENT_SECRET` with your actual client secret
-  - `INFERENCE_MODEL_ENDPOINT` if different from default
   - `INFERENCE_MODEL_NAME` if different from default
+  - `INFERENCE_API_KEY` if you are not using Keycloak
 
 **4. Backend Service Configuration:**
 
@@ -174,7 +174,7 @@ No changes needed. Uses default values.
 Start both API and UI services together with Docker Compose:
 
 ```bash
-# From the rag-chatbot directory
+# From the pdf-podcast directory
 docker compose up --build
 
 # Or run in detached mode (background)
