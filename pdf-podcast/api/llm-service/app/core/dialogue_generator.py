@@ -78,20 +78,20 @@ class DialogueGenerator:
             )
 
             # Parse and validate response
-            script = self.formatter.parse_llm_response(response)
+            script = self.script_formatter.parse_llm_response(response)
 
-            if not self.formatter.validate_script(script):
+            if not self.script_formatter.validate_script(script):
                 raise ValueError("Generated script failed validation")
 
             # Post-process script
-            script = self.formatter.merge_short_turns(script)
-            script = self.formatter.truncate_script(script, max_turns=50)
+            script = self.script_formatter.merge_short_turns(script)
+            script = self.script_formatter.truncate_script(script, max_turns=50)
 
             # Format for TTS
-            tts_script = self.formatter.format_for_tts(script)
+            tts_script = self.script_formatter.format_for_tts(script)
 
             # Calculate metadata
-            metadata = self.formatter.calculate_metadata(tts_script)
+            metadata = self.script_formatter.calculate_metadata(tts_script)
             metadata["tone"] = tone
             metadata["host_name"] = host_name
             metadata["guest_name"] = guest_name
@@ -140,19 +140,19 @@ class DialogueGenerator:
             )
 
             # Parse response
-            refined_script = self.formatter.parse_llm_response(response)
+            refined_script = self.script_formatter.parse_llm_response(response)
 
-            if not self.formatter.validate_script(refined_script):
+            if not self.script_formatter.validate_script(refined_script):
                 logger.warning("Refined script invalid, returning original")
                 return {
                     "script": script,
-                    "metadata": self.formatter.calculate_metadata(script),
+                    "metadata": self.script_formatter.calculate_metadata(script),
                     "status": "unchanged"
                 }
 
             # Format and calculate metadata
-            tts_script = self.formatter.format_for_tts(refined_script)
-            metadata = self.formatter.calculate_metadata(tts_script)
+            tts_script = self.script_formatter.format_for_tts(refined_script)
+            metadata = self.script_formatter.calculate_metadata(tts_script)
 
             logger.info("Script refinement successful")
 
@@ -167,7 +167,7 @@ class DialogueGenerator:
             # Return original script on failure
             return {
                 "script": script,
-                "metadata": self.formatter.calculate_metadata(script),
+                "metadata": self.script_formatter.calculate_metadata(script),
                 "status": "error",
                 "error": str(e)
             }
