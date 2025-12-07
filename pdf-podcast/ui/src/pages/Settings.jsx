@@ -1,12 +1,26 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Save, Info } from 'lucide-react';
 
 const Settings = () => {
-  const [apiKey, setApiKey] = useState('');
+  const [llmUrl, setLlmUrl] = useState('');
+  const [llmKey, setLlmKey] = useState('');
+  const [ttsUrl, setTtsUrl] = useState('');
+  const [ttsKey, setTtsKey] = useState('');
   const [saved, setSaved] = useState(false);
 
+  useEffect(() => {
+    setLlmUrl(localStorage.getItem('llm_inference_url') || '');
+    setLlmKey(localStorage.getItem('llm_inference_key') || '');
+    setTtsUrl(localStorage.getItem('tts_api_url') || '');
+    setTtsKey(localStorage.getItem('tts_api_key') || '');
+  }, []);
+
   const handleSave = () => {
-    localStorage.setItem('openai_api_key', apiKey);
+    localStorage.setItem('llm_inference_url', llmUrl);
+    localStorage.setItem('llm_inference_key', llmKey);
+    localStorage.setItem('tts_api_url', ttsUrl);
+    localStorage.setItem('tts_api_key', ttsKey);
+    localStorage.removeItem('openai_api_key'); // clean up legacy key
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
   };
@@ -24,36 +38,69 @@ const Settings = () => {
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex gap-3">
           <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
           <div>
-            <p className="font-medium text-blue-900">OpenAI API Key</p>
+            <p className="font-medium text-blue-900">Inference &amp; TTS</p>
             <p className="text-sm text-blue-700">
-              Your API key is used to generate scripts and audio. It's stored locally in your browser.
+              Configure the endpoints and keys for your inference (LLM) and TTS services. Values are stored locally in your browser.
             </p>
           </div>
         </div>
 
-        <div className="space-y-2">
-          <label htmlFor="apiKey" className="block text-sm font-medium text-gray-700">
-            OpenAI API Key
-          </label>
-          <input
-            id="apiKey"
-            type="password"
-            value={apiKey}
-            onChange={(e) => setApiKey(e.target.value)}
-            placeholder="sk-..."
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-          />
-          <p className="text-sm text-gray-500">
-            Get your API key from{' '}
-            <a
-              href="https://platform.openai.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-primary-600 hover:underline"
-            >
-              platform.openai.com
-            </a>
-          </p>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <label htmlFor="llmUrl" className="block text-sm font-medium text-gray-700">
+              LLM Inference API URL
+            </label>
+            <input
+              id="llmUrl"
+              type="url"
+              value={llmUrl}
+              onChange={(e) => setLlmUrl(e.target.value)}
+              placeholder="https://llm-gateway.example.com"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label htmlFor="llmKey" className="block text-sm font-medium text-gray-700">
+              LLM Inference API Key
+            </label>
+            <input
+              id="llmKey"
+              type="password"
+              value={llmKey}
+              onChange={(e) => setLlmKey(e.target.value)}
+              placeholder="Your LLM key or token"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label htmlFor="ttsUrl" className="block text-sm font-medium text-gray-700">
+              TTS API URL
+            </label>
+            <input
+              id="ttsUrl"
+              type="url"
+              value={ttsUrl}
+              onChange={(e) => setTtsUrl(e.target.value)}
+              placeholder="https://tts-service.example.com"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label htmlFor="ttsKey" className="block text-sm font-medium text-gray-700">
+              TTS API Key
+            </label>
+            <input
+              id="ttsKey"
+              type="password"
+              value={ttsKey}
+              onChange={(e) => setTtsKey(e.target.value)}
+              placeholder="Your TTS key or token"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+            />
+          </div>
         </div>
 
         {saved && (

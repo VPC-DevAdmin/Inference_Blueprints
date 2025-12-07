@@ -1,31 +1,8 @@
 import { Link } from 'react-router-dom';
-import { Upload, Sparkles, Download, ArrowRight } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { Button } from '@components/ui';
 
 export const Home = () => {
-  const features = [
-    {
-      icon: Upload,
-      title: 'Easy Upload',
-      description: 'Simply drag and drop your PDF document to get started',
-    },
-    {
-      icon: Sparkles,
-      title: 'AI-Powered',
-      description: 'Advanced AI creates natural, engaging podcast conversations',
-    },
-    {
-      icon: Download,
-      title: 'Multiple Voices',
-      description: 'Choose from 6 professional AI voices for host and guest',
-    },
-    {
-      icon: Download,
-      title: 'Download & Share',
-      description: 'Get high-quality MP3 audio ready to share anywhere',
-    },
-  ];
-
   const steps = [
     {
       number: 1,
@@ -53,26 +30,6 @@ export const Home = () => {
     <div className="space-y-16">
       {/* Hero Section */}
       <section className="text-center space-y-6 py-12">
-        <div className="inline-block">
-          {/* Custom Hero Image - Replace src with your actual image */}
-          <img
-            src="/hero-image.png"
-            alt="PDF to Podcast"
-            className="w-48 h-48 object-contain mx-auto mb-6"
-            onError={(e) => {
-              // Fallback to gradient box if image not found
-              e.target.style.display = 'none';
-              e.target.nextSibling.style.display = 'inline-block';
-            }}
-          />
-          <div
-            className="bg-gradient-to-br from-primary-600 to-secondary-600 p-4 rounded-2xl mb-6 shadow-xl"
-            style={{ display: 'none' }}
-          >
-            <div className="w-40 h-40 bg-white rounded-lg" />
-          </div>
-        </div>
-
         <h1 className="text-5xl md:text-6xl font-bold text-gray-900 leading-tight">
           Transform PDFs into
           <br />
@@ -100,29 +57,6 @@ export const Home = () => {
         </div>
       </section>
 
-      {/* Features */}
-      <section>
-        <h2 className="text-3xl font-bold text-center text-gray-900 mb-12">
-          Why Choose PDF to Podcast?
-        </h2>
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-          {features.map((feature, index) => (
-            <div
-              key={index}
-              className="bg-white rounded-xl p-6 shadow-lg hover:shadow-xl transition-shadow"
-            >
-              <div className="bg-primary-100 w-12 h-12 rounded-lg flex items-center justify-center mb-4">
-                <feature.icon className="w-6 h-6 text-primary-600" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                {feature.title}
-              </h3>
-              <p className="text-gray-600">{feature.description}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
       {/* How It Works */}
       <section>
         <h2 className="text-3xl font-bold text-center text-gray-900 mb-12">
@@ -146,21 +80,6 @@ export const Home = () => {
             </div>
           ))}
         </div>
-      </section>
-
-      {/* CTA */}
-      <section className="bg-gradient-to-r from-primary-600 to-secondary-600 rounded-2xl p-12 text-center text-white shadow-xl">
-        <h2 className="text-3xl font-bold mb-4">
-          Ready to Create Your First Podcast?
-        </h2>
-        <p className="text-xl mb-8 opacity-90">
-          Get started in less than 5 minutes. No sign-up required.
-        </p>
-        <Link to="/generate">
-          <Button size="xl" variant="secondary">
-            Start Generating Now
-          </Button>
-        </Link>
       </section>
     </div>
   );
