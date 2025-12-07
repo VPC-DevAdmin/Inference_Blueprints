@@ -58,24 +58,24 @@ class TTSClient:
 
     def _try_keycloak_token(self) -> Optional[str]:
         """
-        Obtain an access token using TTS_KEYCLOAK_* if configured.
+        Obtain an access token using KEYCLOAK_* if configured.
         """
         if not self.base_url:
             return None
 
         if not (
-            settings.TTS_KEYCLOAK_CLIENT_ID
-            and settings.TTS_KEYCLOAK_CLIENT_SECRET
-            and settings.TTS_KEYCLOAK_AUDIENCE
+            settings.KEYCLOAK_CLIENT_ID
+            and settings.KEYCLOAK_CLIENT_SECRET
+            and settings.KEYCLOAK_AUDIENCE
         ):
             return None
 
         token_url = f"{self.base_url.rstrip('/')}/token"
         data = {
             "grant_type": "client_credentials",
-            "client_id": settings.TTS_KEYCLOAK_CLIENT_ID,
-            "client_secret": settings.TTS_KEYCLOAK_CLIENT_SECRET,
-            "audience": settings.TTS_KEYCLOAK_AUDIENCE,
+            "client_id": settings.KEYCLOAK_CLIENT_ID,
+            "client_secret": settings.KEYCLOAK_CLIENT_SECRET,
+            "audience": settings.KEYCLOAK_AUDIENCE,
         }
 
         try:

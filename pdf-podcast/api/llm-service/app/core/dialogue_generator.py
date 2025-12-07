@@ -1,5 +1,7 @@
 import logging
 from typing import Dict, List, Optional
+
+from app.config import settings
 from app.core.llm_client import LLMClient
 from app.core.prompt_builder import PromptBuilder
 from app.core.script_formatter import ScriptFormatter
@@ -18,14 +20,15 @@ class DialogueGenerator:
         """
         Initialize dialogue generator
 
-        Args:
-            default_model: Default model to use
+        Auth and gateway settings come from app.config.settings.
         """
+        model_name = default_model or settings.INFERENCE_MODEL_NAME
+
         self.llm_client = LLMClient(
-            default_model=default_model
+            default_model=model_name,
         )
         self.prompt_builder = PromptBuilder()
-        self.formatter = ScriptFormatter()
+        self.script_formatter = ScriptFormatter()
 
     async def generate_script(
         self,
