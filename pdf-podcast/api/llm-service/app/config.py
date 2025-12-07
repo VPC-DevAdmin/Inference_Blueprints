@@ -21,7 +21,6 @@ class Settings(BaseSettings):
     # ----------------------------
     # Model Configuration
     # ----------------------------
-    INFERENCE_MODEL_ENDPOINT: str = "DeepSeek-R1-Distill-Qwen-32B"
     INFERENCE_MODEL_NAME: str = "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B"
 
     # Script generation defaults

@@ -55,13 +55,12 @@ class APIClient:
     def get_inference_client(self):
         """
         Get OpenAI-style client for inference/completions
-        Uses Llama-3.1-8B-Instruct endpoint
         """
         from openai import OpenAI
 
         return OpenAI(
             api_key=self.token,
-            base_url=f"{self.base_url}/{settings.INFERENCE_MODEL_ENDPOINT}/v1",
+            base_url=f"{self.base_url}/v1",
             http_client=self.http_client
         )
 
