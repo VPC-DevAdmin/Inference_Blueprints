@@ -10,3 +10,4 @@ ffmpeg-python>=0.2.0
 aiofiles>=24.1.0
 httpx>=0.28.0
 mutagen>=1.47.0
+requests
