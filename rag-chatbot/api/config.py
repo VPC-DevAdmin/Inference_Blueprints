@@ -16,6 +16,9 @@ load_dotenv()
 # Base URL of your inference gateway (OpenAI-compatible API)
 BASE_URL = os.getenv("BASE_URL", "https://api.example.com")
 
+# Optional different base URL for embeddings
+EMBEDDINGS_BASE_URL = os.getenv("EMBEDDINGS_BASE_URL", BASE_URL)
+
 # Keycloak client-credentials (preferred if provided)
 KEYCLOAK_REALM = os.getenv("KEYCLOAK_REALM", "master")
 KEYCLOAK_CLIENT_ID = os.getenv("KEYCLOAK_CLIENT_ID", "")

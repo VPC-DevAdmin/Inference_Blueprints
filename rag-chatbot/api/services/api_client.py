@@ -12,6 +12,7 @@ logger = logging.getLogger(__name__)
 class APIClient:
     def __init__(self) -> None:
         self.base_url = config.BASE_URL.rstrip("/")
+        self.embeddings_base_url = config.EMBEDDINGS_BASE_URL.rstrip("/")
         self.http_client: Optional[httpx.Client] = None
         self.api_key: Optional[str] = None
         self.auth_mode: str = "unconfigured"
@@ -74,17 +75,17 @@ class APIClient:
             "or INFERENCE_API_KEY."
         )
 
-    def _gateway_base_url(self) -> str:
-        if self.base_url.endswith("/v1"):
-            return self.base_url
-        return f"{self.base_url}/v1"
+    def _normalize_base(self, url: str) -> str:
+        if url.endswith("/v1"):
+            return url
+        return f"{url}/v1"
 
     def get_embedding_client(self):
         from openai import OpenAI
 
         return OpenAI(
             api_key=self.api_key,
-            base_url=self._gateway_base_url(),
+            base_url=self._normalize_base(self.embeddings_base_url),
             http_client=self.http_client,
         )
 
@@ -93,7 +94,7 @@ class APIClient:
 
         return OpenAI(
             api_key=self.api_key,
-            base_url=self._gateway_base_url(),
+            base_url=self._normalize_base(self.base_url),
             http_client=self.http_client,
         )
 

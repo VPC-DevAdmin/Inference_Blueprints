@@ -118,6 +118,9 @@ KEYCLOAK_REALM=master
 KEYCLOAK_CLIENT_ID=api
 KEYCLOAK_CLIENT_SECRET=your_client_secret
 
+# Optional - Different base URL for embeddings
+EMBEDDINGS_BASE_URL=https://api.example.com
+
 # Optional - Static Gateway Token (if not using Keycloak)
 INFERENCE_API_KEY=
 
