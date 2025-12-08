@@ -1,10 +1,9 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
-// Backend URL for dev/proxy. Prefer VITE_API_URL to match frontend config elsewhere.
+// Backend URL for the dev proxy. Keep this pointed at the container DNS name.
 const backendTarget =
-  process.env.VITE_API_URL ||
-  process.env.VITE_API_BASE_URL ||
+  process.env.BACKEND_PROXY_URL ||
   'http://rag-backend:5001';
 
 export default defineConfig({

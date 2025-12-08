@@ -30,8 +30,9 @@ services:
     depends_on:
       - rag-backend
     environment:
-      # Use Vite dev proxy inside the container; browser will call /api and proxy to rag-backend
+      # Browser calls /api; Vite proxy forwards to backend service
       VITE_API_URL: "/api"
+      BACKEND_PROXY_URL: "http://rag-backend:5001"
     ports:
       - "8084:3000"
     networks:
