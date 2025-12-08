@@ -19,11 +19,10 @@ export default function Header() {
           
           <div className="flex items-center space-x-2 text-sm text-gray-500">
             <FileText className="w-4 h-4" />
-            <span>Powered by OpenAI & FAISS</span>
+            <span>Powered by your inference gateway &amp; FAISS</span>
           </div>
         </div>
       </div>
     </header>
   )
 }
-

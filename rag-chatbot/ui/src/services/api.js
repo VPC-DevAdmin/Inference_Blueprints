@@ -1,6 +1,6 @@
 import axios from 'axios'
 
-// API base URL - uses Vite proxy in development (proxies to localhost:5000)
+// API base URL - uses Vite proxy in development (proxies to localhost:5001)
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api'
 
 const api = axios.create({
@@ -82,4 +82,3 @@ export const deleteVectorStore = async () => {
 }
 
 export default api
-

@@ -51,7 +51,7 @@ class HealthResponse(BaseModel):
     """Response model for health check"""
     status: str = Field(..., description="Health status")
     vectorstore_available: bool = Field(..., description="Whether vectorstore is loaded")
-    openai_key_configured: bool = Field(..., description="Whether OpenAI key is configured")
+    inference_key_configured: bool = Field(..., description="Whether inference key is configured")
 
 
 class DeleteResponse(BaseModel):

@@ -1,252 +1,191 @@
-"""
-API Client for authentication and API calls
-Similar to simple-client/main.py implementation
-"""
-
 import logging
-import requests
-import httpx
 from typing import Optional
+
+import httpx
+import requests
+
 import config
 
 logger = logging.getLogger(__name__)
 
 
 class APIClient:
-    """
-    Client for handling authentication and API calls
-    """
-    
-    def __init__(self):
-        self.base_url = config.BASE_URL
-        self.token = None
-        self.http_client = None
-        self._authenticate()
-    
-    def _authenticate(self) -> None:
-        """
-        Authenticate and obtain access token from Keycloak
-        """
+    def __init__(self) -> None:
+        self.base_url = config.BASE_URL.rstrip("/")
+        self.http_client: Optional[httpx.Client] = None
+        self.api_key: Optional[str] = None
+        self.auth_mode: str = "unconfigured"
+
+        self._configure_http_client()
+        self._configure_auth()
+
+    def _configure_http_client(self) -> None:
+        self.http_client = httpx.Client(verify=False)
+        logger.info("HTTP client initialized for gateway")
+
+    def _try_keycloak_token(self) -> Optional[str]:
+        if not (config.KEYCLOAK_CLIENT_ID and config.KEYCLOAK_CLIENT_SECRET):
+            return None
+
         token_url = f"{self.base_url}/token"
         payload = {
             "grant_type": "client_credentials",
             "client_id": config.KEYCLOAK_CLIENT_ID,
             "client_secret": config.KEYCLOAK_CLIENT_SECRET,
         }
-        
+
         try:
-            response = requests.post(token_url, data=payload, verify=False)
-            
-            if response.status_code == 200:
-                self.token = response.json().get("access_token")
-                logger.info(f"✓ Access token obtained: {self.token[:20]}..." if self.token else "Failed to get token")
-                
-                # Create httpx client with SSL verification disabled (like -k in curl)
-                self.http_client = httpx.Client(verify=False)
-                
-            else:
-                logger.error(f"Error obtaining token: {response.status_code} - {response.text}")
-                raise Exception(f"Authentication failed: {response.status_code}")
-                
-        except Exception as e:
-            logger.error(f"Error during authentication: {str(e)}")
-            raise
-    
-    def get_embedding_client(self):
-        """
-        Get OpenAI-style client for embeddings
-        Uses bge-base-en-v1.5 endpoint
-        """
-        from openai import OpenAI
-        
-        return OpenAI(
-            api_key=self.token,
-            base_url=f"{self.base_url}/{config.EMBEDDING_MODEL_ENDPOINT}/v1",
-            http_client=self.http_client
-        )
-    
-    def get_inference_client(self):
-        """
-        Get OpenAI-style client for inference/completions
-        Uses Llama-3.1-8B-Instruct endpoint
-        """
-        from openai import OpenAI
-        
-        return OpenAI(
-            api_key=self.token,
-            base_url=f"{self.base_url}/{config.INFERENCE_MODEL_ENDPOINT}/v1",
-            http_client=self.http_client
-        )
-    
-    def embed_text(self, text: str) -> list:
-        """
-        Get embedding for text
-        Uses the bge-base-en-v1.5 embedding model
-        
-        Args:
-            text: Text to embed
-            
-        Returns:
-            List of embedding values
-        """
-        try:
-            client = self.get_embedding_client()
-            # Call the embeddings endpoint
-            response = client.embeddings.create(
-                model=config.EMBEDDING_MODEL_NAME,
-                input=text
-            )
-            return response.data[0].embedding
-        except Exception as e:
-            logger.error(f"Error generating embedding: {str(e)}")
-            raise
-    
-    def embed_texts(self, texts: list) -> list:
-        """
-        Get embeddings for multiple texts
-        Batches requests to avoid exceeding API limits (max batch size: 32)
-        
-        Args:
-            texts: List of texts to embed
-            
-        Returns:
-            List of embedding vectors
-        """
-        try:
-            BATCH_SIZE = 32  # Maximum allowed batch size
-            all_embeddings = []
-            client = self.get_embedding_client()
-            
-            # Process in batches of 32
-            for i in range(0, len(texts), BATCH_SIZE):
-                batch = texts[i:i + BATCH_SIZE]
-                logger.info(f"Processing embedding batch {i//BATCH_SIZE + 1}/{(len(texts) + BATCH_SIZE - 1)//BATCH_SIZE} ({len(batch)} texts)")
-                
-                response = client.embeddings.create(
-                    model=config.EMBEDDING_MODEL_NAME,
-                    input=batch
+            logger.info("Requesting Keycloak token")
+            resp = requests.post(token_url, data=payload, verify=False)
+            if resp.status_code != 200:
+                logger.error(
+                    "Keycloak token request failed: %s %s",
+                    resp.status_code,
+                    resp.text,
                 )
-                batch_embeddings = [data.embedding for data in response.data]
-                all_embeddings.extend(batch_embeddings)
-            
+                return None
+
+            token = resp.json().get("access_token")
+            if not token:
+                logger.error("Keycloak response missing access_token")
+                return None
+
+            return token
+        except Exception as e:
+            logger.error("Keycloak auth error: %s", e)
+            return None
+
+    def _configure_auth(self) -> None:
+        token = self._try_keycloak_token()
+        if token:
+            self.api_key = token
+            self.auth_mode = "keycloak"
+            logger.info("Gateway auth configured with Keycloak token")
+            return
+
+        if config.INFERENCE_API_KEY:
+            self.api_key = config.INFERENCE_API_KEY
+            self.auth_mode = "inference_api_key"
+            logger.info("Gateway auth configured with static INFERENCE_API_KEY")
+            return
+
+        raise ValueError(
+            "No gateway auth. Set KEYCLOAK_CLIENT_ID and KEYCLOAK_CLIENT_SECRET "
+            "or INFERENCE_API_KEY."
+        )
+
+    def _gateway_base_url(self) -> str:
+        if self.base_url.endswith("/v1"):
+            return self.base_url
+        return f"{self.base_url}/v1"
+
+    def get_embedding_client(self):
+        from openai import OpenAI
+
+        return OpenAI(
+            api_key=self.api_key,
+            base_url=self._gateway_base_url(),
+            http_client=self.http_client,
+        )
+
+    def get_inference_client(self):
+        from openai import OpenAI
+
+        return OpenAI(
+            api_key=self.api_key,
+            base_url=self._gateway_base_url(),
+            http_client=self.http_client,
+        )
+
+    def embed_text(self, text: str) -> list:
+        try:
+            client = self.get_embedding_client()
+            resp = client.embeddings.create(
+                model=config.EMBEDDING_MODEL_NAME,
+                input=text,
+            )
+            return resp.data[0].embedding
+        except Exception as e:
+            logger.error("Embedding error: %s", e)
+            raise
+
+    def embed_texts(self, texts: list) -> list:
+        try:
+            client = self.get_embedding_client()
+            batch_size = 32
+            all_embeddings: list[list[float]] = []
+
+            for i in range(0, len(texts), batch_size):
+                batch = texts[i : i + batch_size]
+                resp = client.embeddings.create(
+                    model=config.EMBEDDING_MODEL_NAME,
+                    input=batch,
+                )
+                all_embeddings.extend([item.embedding for item in resp.data])
+
             return all_embeddings
         except Exception as e:
-            logger.error(f"Error generating embeddings: {str(e)}")
+            logger.error("Batch embedding error: %s", e)
             raise
-    
-    def complete(self, prompt: str, max_tokens: int = 50, temperature: float = 0) -> str:
-        """
-        Get completion from the inference model
-        Uses Llama-3.1-8B-Instruct for inference
-        
-        Args:
-            prompt: Input prompt
-            max_tokens: Maximum tokens to generate
-            temperature: Temperature for generation
-            
-        Returns:
-            Generated text
-        """
+
+    def complete(
+        self,
+        prompt: str,
+        max_tokens: int = 150,
+        temperature: float = 0.0,
+    ) -> str:
         try:
             client = self.get_inference_client()
-            logger.info(f"Calling inference client with model: {config.INFERENCE_MODEL_NAME}")
-            response = client.completions.create(
+            resp = client.chat.completions.create(
                 model=config.INFERENCE_MODEL_NAME,
-                prompt=prompt,
+                messages=[{"role": "user", "content": prompt}],
                 max_tokens=max_tokens,
-                temperature=temperature
+                temperature=temperature,
             )
-            
-            # Handle response structure
-            if hasattr(response, 'choices') and len(response.choices) > 0:
-                choice = response.choices[0]
-                if hasattr(choice, 'text'):
-                    return choice.text
-                else:
-                    logger.error(f"Unexpected choice structure: {type(choice)}, {choice}")
-                    return str(choice)
-            else:
-                logger.error(f"Unexpected response: {type(response)}, {response}")
-                return ""
+
+            if resp.choices:
+                msg = resp.choices[0].message
+                return msg.content if getattr(msg, "content", None) else ""
+            logger.error("Unexpected completion response: %r", resp)
+            return ""
         except Exception as e:
-            logger.error(f"Error generating completion: {str(e)}", exc_info=True)
+            logger.error("Completion error: %s", e, exc_info=True)
             raise
-    
-    def chat_complete(self, messages: list, max_tokens: int = 150, temperature: float = 0) -> str:
-        """
-        Get chat completion from the inference model
-        
-        Args:
-            messages: List of message dicts with 'role' and 'content'
-            max_tokens: Maximum tokens to generate
-            temperature: Temperature for generation
-            
-        Returns:
-            Generated text
-        """
+
+    def chat_complete(
+        self,
+        messages: list,
+        max_tokens: int = 150,
+        temperature: float = 0.0,
+    ) -> str:
         try:
             client = self.get_inference_client()
-            # Convert messages to a prompt for the completions endpoint
-            # (since Llama models use completions, not chat.completions)
-            prompt = ""
-            for msg in messages:
-                role = msg.get('role', 'user')
-                content = msg.get('content', '')
-                if role == 'system':
-                    prompt += f"System: {content}\n\n"
-                elif role == 'user':
-                    prompt += f"User: {content}\n\n"
-                elif role == 'assistant':
-                    prompt += f"Assistant: {content}\n\n"
-            prompt += "Assistant:"
-            
-            logger.info(f"Calling inference with prompt length: {len(prompt)}")
-            
-            response = client.completions.create(
+            resp = client.chat.completions.create(
                 model=config.INFERENCE_MODEL_NAME,
-                prompt=prompt,
+                messages=messages,
                 max_tokens=max_tokens,
-                temperature=temperature
+                temperature=temperature,
             )
-            
-            # Handle response structure
-            if hasattr(response, 'choices') and len(response.choices) > 0:
-                choice = response.choices[0]
-                if hasattr(choice, 'text'):
-                    return choice.text
-                elif hasattr(choice, 'message') and hasattr(choice.message, 'content'):
-                    return choice.message.content
-                else:
-                    logger.error(f"Unexpected response structure: {type(choice)}, {choice}")
-                    return str(choice)
-            else:
-                logger.error(f"Unexpected response: {type(response)}, {response}")
-                return ""
+
+            if resp.choices:
+                msg = resp.choices[0].message
+                return msg.content if getattr(msg, "content", None) else ""
+            logger.error("Unexpected chat response: %r", resp)
+            return ""
         except Exception as e:
-            logger.error(f"Error generating chat completion: {str(e)}", exc_info=True)
+            logger.error("Chat completion error: %s", e, exc_info=True)
             raise
-    
-    def __del__(self):
-        """
-        Cleanup: close httpx client
-        """
+
+    def __del__(self) -> None:
         if self.http_client:
             self.http_client.close()
 
 
-# Global API client instance
 _api_client: Optional[APIClient] = None
 
 
 def get_api_client() -> APIClient:
-    """
-    Get or create the global API client instance
-    
-    Returns:
-        APIClient instance
-    """
     global _api_client
     if _api_client is None:
         _api_client = APIClient()
     return _api_client
-

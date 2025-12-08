@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI):
     """Lifespan context manager for FastAPI app"""
     # Startup
-    app.state.vectorstore = load_vector_store(config.OPENAI_API_KEY)
+    app.state.vectorstore = load_vector_store()
     if app.state.vectorstore:
         logger.info("✓ FAISS vector store loaded successfully")
     else:
@@ -78,11 +78,17 @@ def root():
 @app.get("/health", response_model=HealthResponse)
 def health_check():
     """Detailed health check"""
+    gateway_configured = bool(
+        (config.KEYCLOAK_CLIENT_ID and config.KEYCLOAK_CLIENT_SECRET)
+        or config.INFERENCE_API_KEY
+    )
+
     return HealthResponse(
         status="healthy",
         vectorstore_available=app.state.vectorstore is not None,
-        openai_key_configured=bool(config.OPENAI_API_KEY)
+        inference_key_configured=gateway_configured,
     )
+
 
 
 @app.post("/upload-pdf", response_model=UploadResponse)
@@ -132,7 +138,7 @@ async def upload_pdf(file: UploadFile = File(...)):
             )
         
         # Create embeddings and store in FAISS
-        vectorstore = store_in_vector_storage(chunks, config.OPENAI_API_KEY)
+        vectorstore = store_in_vector_storage(chunks)
         
         # Update app state
         app.state.vectorstore = vectorstore
@@ -186,7 +192,6 @@ def query_endpoint(request: QueryRequest):
         result = query_documents(
             request.query,
             app.state.vectorstore,
-            config.OPENAI_API_KEY
         )
         return QueryResponse(**result)
     except Exception as e:
@@ -226,4 +231,3 @@ def delete_vectorstore_endpoint():
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=5001)
-

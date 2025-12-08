@@ -39,10 +39,12 @@ cd /path/to/rag-chatbot
 # 2. Create .env file in the api directory with enterprise configuration
 mkdir -p api
 cat > api/.env << EOF
+VITE_API_URL=https://backend:5001
 BASE_URL=https://api.example.com
 KEYCLOAK_REALM=master
 KEYCLOAK_CLIENT_ID=api
 KEYCLOAK_CLIENT_SECRET=your_client_secret
+INFERENCE_API_KEY=
 EMBEDDING_MODEL_ENDPOINT=bge-base-en-v1.5
 INFERENCE_MODEL_ENDPOINT=Llama-3.1-8B-Instruct
 EMBEDDING_MODEL_NAME=bge-base-en-v1.5
@@ -79,13 +81,16 @@ cd rag-chatbot
 mkdir -p api
 cat > api/.env << EOF
 # Backend API URL (accessible from frontend)
-VITE_API_URL=https://backend:5000
+VITE_API_URL=https://backend:5001
 
 # Required - Enterprise/Keycloak Configuration
 BASE_URL=https://api.example.com
 KEYCLOAK_REALM=master
 KEYCLOAK_CLIENT_ID=api
 KEYCLOAK_CLIENT_SECRET=your_client_secret
+
+# Optional - Static Gateway Token (if not using Keycloak)
+INFERENCE_API_KEY=
 
 # Required - Model Configuration
 EMBEDDING_MODEL_ENDPOINT=bge-base-en-v1.5
@@ -131,13 +136,16 @@ For Docker Compose, create a `.env` file in the `api/` directory (relative to `r
 
 ```bash
 # Backend API URL (accessible from frontend)
-VITE_API_URL=https://backend:5000
+VITE_API_URL=https://backend:5001
 
 # Required - Enterprise/Keycloak Configuration
 BASE_URL=https://api.example.com
 KEYCLOAK_REALM=master
 KEYCLOAK_CLIENT_ID=api
 KEYCLOAK_CLIENT_SECRET=your_client_secret
+
+# Optional - Static Gateway Token (if not using Keycloak)
+INFERENCE_API_KEY=
 
 # Required - Model Configuration
 EMBEDDING_MODEL_ENDPOINT=bge-base-en-v1.5
@@ -147,7 +155,7 @@ INFERENCE_MODEL_NAME=meta-llama/Llama-3.1-8B-Instruct
 
 # Optional (with defaults shown)
 # VECTOR_STORE_PATH=./dmv_index
-# MAX_FILE_SIZE_MB=50
+# MAX_FILE_SIZE=52428800  # bytes (50MB)
 ```
 
 **Note**: The docker-compose.yml file automatically loads environment variables from `./api/.env` for the backend service.
@@ -276,7 +284,7 @@ Response:
 {
   "status": "healthy",
   "vectorstore_available": true,
-  "enterprise_inference_configured": true
+  "inference_key_configured": true
 }
 ```
 

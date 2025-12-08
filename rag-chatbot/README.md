@@ -110,13 +110,16 @@ This application requires an `.env` file in the `api` directory for proper confi
 mkdir -p api
 cat > api/.env << EOF
 # Backend API URL (accessible from frontend)
-VITE_API_URL=https://backend:5000
+VITE_API_URL=https://backend:5001
 
 # Required - Enterprise/Keycloak Configuration
 BASE_URL=https://api.example.com
 KEYCLOAK_REALM=master
 KEYCLOAK_CLIENT_ID=api
 KEYCLOAK_CLIENT_SECRET=your_client_secret
+
+# Optional - Static Gateway Token (if not using Keycloak)
+INFERENCE_API_KEY=
 
 # Required - Model Configuration
 EMBEDDING_MODEL_ENDPOINT=bge-base-en-v1.5
@@ -130,13 +133,16 @@ Or manually create `api/.env` with:
 
 ```bash
 # Backend API URL (accessible from frontend)
-VITE_API_URL=https://backend:5000
+VITE_API_URL=https://backend:5001
 
 # Required - Enterprise/Keycloak Configuration
 BASE_URL=https://api.example.com
 KEYCLOAK_REALM=master
 KEYCLOAK_CLIENT_ID=api
 KEYCLOAK_CLIENT_SECRET=your_client_secret
+
+# Optional - Static Gateway Token (if not using Keycloak)
+INFERENCE_API_KEY=
 
 # Required - Model Configuration
 EMBEDDING_MODEL_ENDPOINT=bge-base-en-v1.5

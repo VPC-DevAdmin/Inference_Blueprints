@@ -13,7 +13,7 @@ import sys
 import time
 from pathlib import Path
 
-BASE_URL = "http://localhost:5000"
+BASE_URL = "http://localhost:5001"
 
 def print_status(message, status="info"):
     """Print colored status messages"""
@@ -53,7 +53,7 @@ def test_detailed_health():
         print_status("✓ Detailed health check passed", "success")
         print(f"  Status: {data.get('status')}")
         print(f"  Vectorstore available: {data.get('vectorstore_available')}")
-        print(f"  OpenAI key configured: {data.get('openai_key_configured')}")
+        print(f"  Gateway auth configured: {data.get('inference_key_configured')}")
         return True
     except Exception as e:
         print_status(f"✗ Detailed health check failed: {str(e)}", "error")
@@ -162,8 +162,8 @@ def main():
     except requests.exceptions.RequestException:
         print_status("✗ Server is not running!", "error")
         print_status(f"Please start the server first:", "warning")
-        print_status(f"  cd /Users/raghavdarisi/projects/GenAISamples/rag-chatbot/api", "warning")
-        print_status(f"  uvicorn server:app --reload", "warning")
+        print_status(f"  cd /path/to/rag-chatbot/api", "warning")
+        print_status(f"  uvicorn server:app --host 0.0.0.0 --port 5001 --reload", "warning")
         print_status(f"  OR: python server.py", "warning")
         sys.exit(1)
     
@@ -212,4 +212,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
