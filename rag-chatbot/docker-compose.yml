@@ -1,42 +1,54 @@
+version: "3.9"
+
 services:
-  # backend Gateway (Python)
-  backend:
+  rag-backend:
     build:
       context: ./api
       dockerfile: Dockerfile
-    container_name: backend
+    image: vectorpathconsulting/rag-chat-backend:latest
+    container_name: rag-chat-backend
     ports:
       - "5001:5001"
     env_file:
       - ./api/.env
-    volumes:
-      - ./api:/app
     networks:
-      - app_network
+      - appnet
     restart: unless-stopped
 
-
-  # Frontend (React)
-  frontend:
+  rag-frontend:
     build:
       context: ./ui
       dockerfile: Dockerfile
-    container_name: frontend
-    ports:
-      - "3000:3000"
+    image: vectorpathconsulting/rag-chat-frontend:latest
+    container_name: rag-chat-frontend
     depends_on:
-      - backend
+      - rag-backend
+    environment:
+      VITE_API_BASE_URL: "http://rag-backend:5001"
+    ports:
+      - "8084:80"
     networks:
-      - app_network
+      - appnet
     restart: unless-stopped
 
-##################################
-# 🔗 Shared Network
-##################################
-networks:
-  app_network:
-    driver: bridge
+  info:
+    image: alpine:latest
+    container_name: rag-chat-info
+    command: >
+      sh -c "
+      echo '';
+      echo '==============================================';
+      echo '   Inference Blueprint: RAG Chatbot';
+      echo '----------------------------------------------';
+      echo '   API:      http://localhost:5001';
+      echo '   Frontend: http://localhost:8084';
+      echo '==============================================';
+      echo '';
+      sleep 10;
+      "
+    networks:
+      - appnet
 
-volumes:
-  audio-files:
-    driver: local
+networks:
+  appnet:
+    driver: bridge
