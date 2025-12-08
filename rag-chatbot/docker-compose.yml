@@ -24,9 +24,9 @@ services:
     depends_on:
       - rag-backend
     environment:
-      VITE_API_BASE_URL: "http://rag-backend:5001"
+      VITE_API_URL: "http://rag-backend:5001"
     ports:
-      - "8084:80"
+      - "8084:3000"
     networks:
       - appnet
     restart: unless-stopped
