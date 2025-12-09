@@ -1,18 +1,15 @@
-version: "3.9"
-
 services:
   rag-backend:
     build:
       context: ./api
       dockerfile: Dockerfile
+    image: vectorpathconsulting/rag-chat-backend:latest
     container_name: rag-chat-backend
     ports:
       - "5001:5001"
     env_file:
       - ./api/.env
     environment:
-      # If set, this overrides EMBEDDINGS_BASE_URL from .env
-      # For local embeddings, this is usually what you want.
       EMBEDDINGS_BASE_URL: ${EMBEDDINGS_BASE_URL:-http://local-embeddings:8080}
     networks:
       - appnet
@@ -24,11 +21,11 @@ services:
     build:
       context: ./ui
       dockerfile: Dockerfile
+    image: vectorpathconsulting/rag-chat-frontend:latest
     container_name: rag-chat-frontend
     depends_on:
       - rag-backend
     environment:
-      # Browser calls /api, and your reverse proxy or dev setup routes it
       VITE_API_URL: "/api"
       BACKEND_PROXY_URL: "http://rag-backend:5001"
     ports:
@@ -37,18 +34,15 @@ services:
       - appnet
     restart: unless-stopped
 
-  # Local embeddings service
   local-embeddings:
     build:
       context: ./embeddings_service
       dockerfile: Dockerfile
+    image: vectorpathconsulting/rag-local-embeddings:latest
     container_name: rag-local-embeddings
     environment:
-      # The embeddings service reads this in main.py:
-      # MODEL_NAME = os.getenv("EMBEDDINGS_MODEL_NAME", "BAAI/bge-base-en-v1.5")
       EMBEDDINGS_MODEL_NAME: ${EMBEDDINGS_MODEL_NAME:-BAAI/bge-base-en-v1.5}
     ports:
-      # Host port only for testing. Backend talks to it on the internal network.
       - "8088:8080"
     networks:
       - appnet
