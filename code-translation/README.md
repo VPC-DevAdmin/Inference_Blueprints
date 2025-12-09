@@ -28,7 +28,7 @@ The **Code Translation** application demonstrates how large language models can 
 - Code translation between 6 languages (Java, C, C++, Python, Rust, Go)
 - PDF code extraction with pattern recognition
 - Configurable OpenAI-compatible inference endpoint (default: `meta-llama/Llama-3.1-8B-Instruct`)
-- Authentication priority: Keycloak client credentials (if provided) → `INFERENCE_API_KEY` → open mode
+- Authentication priority: client credentials token at `${BASE_URL}/token` (if `KEYCLOAK_CLIENT_ID`/`KEYCLOAK_CLIENT_SECRET` set) → `INFERENCE_API_KEY` → open/no-auth mode (endpoint must accept unauthenticated requests)
 - Comprehensive error handling and logging
 - File validation and size limits
 - CORS enabled for web integration
@@ -103,7 +103,7 @@ This application is built with enterprise inference capabilities using optional 
 
 1. User enters code or uploads a PDF through the web UI.
 2. The backend validates the input and extracts code if needed.
-3. The backend authenticates with Keycloak (if credentials are provided) or uses `INFERENCE_API_KEY`/open mode, then calls the configured model endpoint.
+3. The backend authenticates via client credentials at `${BASE_URL}/token` (if `KEYCLOAK_CLIENT_ID`/`KEYCLOAK_CLIENT_SECRET` are set) or uses `INFERENCE_API_KEY`/open mode, then calls the normalized OpenAI-compatible endpoint at `${BASE_URL}/v1/chat/completions`.
 4. The model translates the code to the target language.
 5. The translated code is returned and displayed to the user.
 6. User can copy the translated code with one click.
@@ -144,66 +144,34 @@ cd Dell_Inference_Blueprints/code-translation
 
 ### Set up the Environment
 
-This application requires an `.env` file in the root directory for proper configuration. Create it with the commands below:
+This application requires an `.env` file in the root directory for proper configuration. A template is provided—copy it and fill in your values:
 
 ```bash
-# Create the .env file
-cat > .env << EOF
-# Inference endpoint (OpenAI-compatible)
-BASE_URL=https://api.example.com
-
-# Authentication (choose one path)
-# 1) API key (OpenAI-style)
-INFERENCE_API_KEY=your_api_key
-
-# 2) Keycloak client credentials (if your endpoint is protected this way)
-KEYCLOAK_CLIENT_ID=api
-KEYCLOAK_CLIENT_SECRET=your_client_secret
-KEYCLOAK_REALM=master
-
-# Model configuration
-INFERENCE_MODEL_NAME=meta-llama/Llama-3.1-8B-Instruct
-
-# LLM Settings
-LLM_TEMPERATURE=0.2
-LLM_MAX_TOKENS=4096
-
-# Code Translation Settings
-MAX_CODE_LENGTH=10000
-MAX_FILE_SIZE=10485760
-
-# CORS Configuration
-CORS_ALLOW_ORIGINS=http://localhost:5173,http://localhost:3000
-EOF
+cp .env.example .env
 ```
 
-Or manually create `.env` with:
+Key points for configuration:
+- `BASE_URL` is required and should point to the root of your OpenAI-compatible endpoint (the backend normalizes it to `${BASE_URL}/v1/chat/completions`, stripping any trailing `/v1` or `/chat/completions` you might paste in).
+- Choose one auth path: set `INFERENCE_API_KEY`, or set `KEYCLOAK_CLIENT_ID`/`KEYCLOAK_CLIENT_SECRET` to request a token from `${BASE_URL}/token`. Leaving both blank uses open/no-auth mode (the endpoint must allow unauthenticated calls). `KEYCLOAK_REALM` is kept for compatibility but is not used in the current token request.
+- Other settings already have defaults (`INFERENCE_MODEL_NAME`, `LLM_TEMPERATURE`, `LLM_MAX_TOKENS`, `MAX_CODE_LENGTH`, `MAX_FILE_SIZE`, `CORS_ALLOW_ORIGINS`), so override them only if you need different values. `CORS_ALLOW_ORIGINS` defaults to `*` when not set.
+
+Example `.env` content:
 
 ```bash
-# Inference endpoint (OpenAI-compatible)
 BASE_URL=https://api.example.com
-
-# Authentication (choose one path)
-# 1) API key (OpenAI-style)
-INFERENCE_API_KEY=your_api_key
-
-# 2) Keycloak client credentials (if your endpoint is protected this way)
-KEYCLOAK_CLIENT_ID=api
-KEYCLOAK_CLIENT_SECRET=your_client_secret
+INFERENCE_API_KEY=your_api_key            # or leave blank if using client credentials/open mode
+KEYCLOAK_CLIENT_ID=api                    # optional
+KEYCLOAK_CLIENT_SECRET=your_client_secret # optional
 KEYCLOAK_REALM=master
 
-# Model configuration
 INFERENCE_MODEL_NAME=meta-llama/Llama-3.1-8B-Instruct
-
-# LLM Settings
 LLM_TEMPERATURE=0.2
 LLM_MAX_TOKENS=4096
 
-# Code Translation Settings
 MAX_CODE_LENGTH=10000
 MAX_FILE_SIZE=10485760
 
-# CORS Configuration
+# Optional: override default "*" if you want to restrict origins
 CORS_ALLOW_ORIGINS=http://localhost:5173,http://localhost:3000
 ```
 
@@ -275,6 +243,8 @@ Upload a PDF:
 - Click "browse" to select a file
 - Wait for code extraction to complete
 - Extracted code appears in the source code box
+
+Translation requests are limited to 10,000 characters and PDF uploads are limited to 10 MB (enforced by both the UI and backend).
 
 **UI Configuration**
 
