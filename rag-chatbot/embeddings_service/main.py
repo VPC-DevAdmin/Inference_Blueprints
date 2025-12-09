@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 from sentence_transformers import SentenceTransformer
 
-MODEL_NAME = os.getenv("MODEL_NAME", "BAAI/bge-base-en-v1.5")
+MODEL_NAME = os.getenv("EMBEDDINGS_MODEL_NAME", "BAAI/bge-base-en-v1.5")
 
 app = FastAPI(title="Local Embeddings Service")
 

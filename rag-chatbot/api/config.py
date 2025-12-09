@@ -34,7 +34,7 @@ INFERENCE_API_KEY = os.getenv("INFERENCE_API_KEY")
 # -------------------------------------------------------------------
 
 # Embedding model that the gateway exposes
-EMBEDDING_MODEL_NAME = os.getenv("EMBEDDING_MODEL_NAME", "bge-base-en-v1.5")
+EMBEDDINGS_MODEL_NAME = os.getenv("EMBEDDINGS_MODEL_NAME", "bge-base-en-v1.5")
 
 # Chat / completion model that the gateway exposes
 INFERENCE_MODEL_NAME = os.getenv(
@@ -44,8 +44,8 @@ INFERENCE_MODEL_NAME = os.getenv(
 
 # Optional legacy endpoint hints that some gateways use
 # Kept only as hints for routing if you decide to re-use them
-EMBEDDING_MODEL_ENDPOINT = os.getenv(
-    "EMBEDDING_MODEL_ENDPOINT",
+EMBEDDINGS_MODEL_ENDPOINT = os.getenv(
+    "EMBEDDINGS_MODEL_ENDPOINT",
     "bge-base-en-v1.5",
 )
 INFERENCE_MODEL_ENDPOINT = os.getenv(

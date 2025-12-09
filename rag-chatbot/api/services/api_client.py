@@ -150,7 +150,7 @@ class APIClient:
         try:
             client = self.get_embedding_client()
             resp = client.embeddings.create(
-                model=getattr(config, "EMBEDDING_MODEL_NAME", ""),
+                model=getattr(config, "EMBEDDINGS_MODEL_NAME", ""),
                 input=text,
             )
             return resp.data[0].embedding
@@ -173,7 +173,7 @@ class APIClient:
                     self.embeddings_base_url,
                 )
                 resp = client.embeddings.create(
-                    model=getattr(config, "EMBEDDING_MODEL_NAME", ""),
+                    model=getattr(config, "EMBEDDINGS_MODEL_NAME", ""),
                     input=batch,
                 )
                 all_embeddings.extend([item.embedding for item in resp.data])

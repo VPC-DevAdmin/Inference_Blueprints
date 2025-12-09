@@ -8,7 +8,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Default model, can be overridden when you run the container
-ENV MODEL_NAME=BAAI/bge-base-en-v1.5
+ENV EMBEDDINGS_MODEL_NAME=BAAI/bge-base-en-v1.5
 
 EXPOSE 8080
 

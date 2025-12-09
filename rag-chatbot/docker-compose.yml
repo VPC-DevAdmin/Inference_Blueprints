@@ -5,45 +5,30 @@ services:
     build:
       context: ./api
       dockerfile: Dockerfile
-    image: vectorpathconsulting/rag-chat-backend:latest
     container_name: rag-chat-backend
     ports:
       - "5001:5001"
     env_file:
       - ./api/.env
     environment:
-      # Inference gateway base URL
-      BASE_URL: ${BASE_URL:-https://api.example.com}
-
-      # Embeddings endpoint base URL
-      # Default is a remote OpenAI compatible API.
-      # To use the local embeddings service, set:
-      #   EMBEDDINGS_BASE_URL=http://local-embeddings:8080
-      EMBEDDINGS_BASE_URL: ${EMBEDDINGS_BASE_URL:-https://api.example.com}
-
-      # Model hints
-      EMBEDDING_MODEL_NAME: ${EMBEDDING_MODEL_NAME:-bge-base-en-v1.5}
-      INFERENCE_MODEL_NAME: ${INFERENCE_MODEL_NAME:-meta-llama/Llama-3.1-8B-Instruct}
-      EMBEDDING_MODEL_ENDPOINT: ${EMBEDDING_MODEL_ENDPOINT:-bge-base-en-v1.5}
-      INFERENCE_MODEL_ENDPOINT: ${INFERENCE_MODEL_ENDPOINT:-Llama-3.1-8B-Instruct}
+      # If set, this overrides EMBEDDINGS_BASE_URL from .env
+      # For local embeddings, this is usually what you want.
+      EMBEDDINGS_BASE_URL: ${EMBEDDINGS_BASE_URL:-http://local-embeddings:8080}
     networks:
       - appnet
     restart: unless-stopped
-    # If you want to enforce that embeddings are local and ready before startup,
-    # you can uncomment this block:
-    # depends_on:
-    #   - local-embeddings
+    depends_on:
+      - local-embeddings
 
   rag-frontend:
     build:
       context: ./ui
       dockerfile: Dockerfile
-    image: vectorpathconsulting/rag-chat-frontend:latest
     container_name: rag-chat-frontend
     depends_on:
       - rag-backend
     environment:
-      # Browser calls /api; Vite proxy forwards to backend service
+      # Browser calls /api, and your reverse proxy or dev setup routes it
       VITE_API_URL: "/api"
       BACKEND_PROXY_URL: "http://rag-backend:5001"
     ports:
@@ -52,21 +37,18 @@ services:
       - appnet
     restart: unless-stopped
 
-  # Optional local embeddings service
-  # Built from ./embeddings_service which should expose /health and /v1/embeddings on port 8080
+  # Local embeddings service
   local-embeddings:
     build:
       context: ./embeddings_service
       dockerfile: Dockerfile
-    image: vectorpathconsulting/rag-local-embeddings:latest
     container_name: rag-local-embeddings
     environment:
-      # Used by the simple FastAPI server inside embeddings_service
-      MODEL_NAME: ${EMBEDDING_MODEL_NAME:-bge-base-en-v1.5}
+      # The embeddings service reads this in main.py:
+      # MODEL_NAME = os.getenv("EMBEDDINGS_MODEL_NAME", "BAAI/bge-base-en-v1.5")
+      EMBEDDINGS_MODEL_NAME: ${EMBEDDINGS_MODEL_NAME:-BAAI/bge-base-en-v1.5}
     ports:
-      # Expose on host 8088 for local curl testing:
-      #   curl http://localhost:8088/health
-      #   curl http://localhost:8088/v1/embeddings ...
+      # Host port only for testing. Backend talks to it on the internal network.
       - "8088:8080"
     networks:
       - appnet
@@ -89,7 +71,7 @@ services:
       echo '----------------------------------------------';
       echo '   API:      http://localhost:5001';
       echo '   Frontend: http://localhost:8084';
-      echo '   Local embeddings (optional): http://localhost:8088';
+      echo '   Local embeddings: http://localhost:8088';
       echo '==============================================';
       echo '';
       sleep 10;
