@@ -57,7 +57,7 @@ docker compose up --build
 
 # 4. Access the application
 # API: http://localhost:5001/docs
-# UI: http://localhost:3000
+# UI: http://localhost:8084
 ```
 
 The application will automatically start both the backend API and frontend UI. Visit http://localhost:5001/docs for interactive API documentation.
@@ -114,7 +114,7 @@ This will:
 - Build the frontend UI container
 - Start both services automatically
 - Make API available at http://localhost:5001
-- Make UI available at http://localhost:3000
+- Make UI available at http://localhost:8084 (frontend container 3000 mapped to host 8084)
 
 ### Dependencies
 
@@ -225,7 +225,7 @@ docker compose down
 ```
 
 The API will be available at: `http://localhost:5001`  
-The UI will be available at: `http://localhost:3000`
+The UI will be available at: `http://localhost:8084` (frontend container 3000 mapped to host 8084)
 
 **View logs**:
 
@@ -585,7 +585,7 @@ LLM_MODEL = "gpt-4"
 
 **Solution**:
 
-1. Check if ports 5001 or 3000 are already in use: `lsof -i :5001` or `lsof -i :3000` (Unix) or `netstat -ano | findstr :5001` (Windows)
+1. Check if ports 5001 or 8084 are already in use: `lsof -i :5001` or `lsof -i :8084` (Unix) or `netstat -ano | findstr :5001` (Windows)
 2. Check container logs: `docker compose logs backend`
 3. Try rebuilding containers: `docker compose down && docker compose build --no-cache && docker compose up`
 4. Check the logs for specific error messages

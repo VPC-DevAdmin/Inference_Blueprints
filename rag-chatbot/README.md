@@ -55,7 +55,7 @@ Below is the architecture as it consists of a server that waits for documents to
 
 **Service Components:**
 
-1. **React Web UI (Port 3000)** - Provides intuitive chat interface with drag-and-drop PDF upload, real-time messaging, and document-grounded Q&A interaction
+1. **React Web UI (Container Port 3000 → Host 8084)** - Provides intuitive chat interface with drag-and-drop PDF upload, real-time messaging, and document-grounded Q&A interaction
 
 2. **FastAPI Backend (Port 5001)** - Handles document processing, FAISS vector storage, LangChain integration, and orchestrates retrieval-augmented generation for accurate responses
 
@@ -106,12 +106,9 @@ cd Dell_Inference_Blueprints/rag-chatbot
 This application requires an `.env` file in the `api` directory for proper configuration. Create it with the commands below:
 
 ```bash
-# Create the .env file in the api directory
+# Create the .env file in the api directory (backend config)
 mkdir -p api
 cat > api/.env << EOF
-# Backend API URL (accessible from frontend)
-VITE_API_URL=https://backend:5001
-
 # Required - Enterprise/Keycloak Configuration
 BASE_URL=https://api.example.com
 EMBEDDINGS_BASE_URL=https://api.example.com
@@ -133,9 +130,6 @@ EOF
 Or manually create `api/.env` with:
 
 ```bash
-# Backend API URL (accessible from frontend)
-VITE_API_URL=https://backend:5001
-
 # Required - Enterprise/Keycloak Configuration
 BASE_URL=https://api.example.com
 EMBEDDINGS_BASE_URL=https://api.example.com
@@ -168,7 +162,7 @@ docker compose up -d --build
 ```
 
 The API will be available at: `http://localhost:5001`  
-The UI will be available at: `http://localhost:3000`
+The UI will be available at: `http://localhost:8084` (port 8084 mapped to the frontend container)
 
 **View logs**:
 
@@ -197,8 +191,7 @@ docker compose ps
 
 **Using the Application**
 
-Make sure you are at the localhost:3000 url
-
+When running with the provided Docker Compose file, open `http://localhost:8084`.
 You will be directed to the main page which has each feature
 
 ![User Interface](images/ui.png)
