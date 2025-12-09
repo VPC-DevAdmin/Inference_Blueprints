@@ -81,6 +81,7 @@ This document contains all common issues encountered during development and thei
 **Solution**:
 
 1. Ensure the API server is running on `http://localhost:5001`
+2. If using Docker Compose, ensure the frontend is accessed via `http://localhost:8084` and that it proxies to the backend at `rag-backend:5001`
 2. Check browser console for detailed errors
 3. Verify CORS is enabled in the API
 

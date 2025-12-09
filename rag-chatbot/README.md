@@ -120,9 +120,9 @@ KEYCLOAK_CLIENT_SECRET=your_client_secret
 INFERENCE_API_KEY=
 
 # Required - Model Configuration
-EMBEDDING_MODEL_ENDPOINT=bge-base-en-v1.5
+EMBEDDING_MODEL_ENDPOINT=BAAI/bge-base-en-v1.5
 INFERENCE_MODEL_ENDPOINT=Llama-3.1-8B-Instruct
-EMBEDDING_MODEL_NAME=bge-base-en-v1.5
+EMBEDDING_MODEL_NAME=BAAI/bge-base-en-v1.5
 INFERENCE_MODEL_NAME=meta-llama/Llama-3.1-8B-Instruct
 EOF
 ```
@@ -141,9 +141,9 @@ KEYCLOAK_CLIENT_SECRET=your_client_secret
 INFERENCE_API_KEY=
 
 # Required - Model Configuration
-EMBEDDING_MODEL_ENDPOINT=bge-base-en-v1.5
+EMBEDDING_MODEL_ENDPOINT=BAAI/bge-base-en-v1.5
 INFERENCE_MODEL_ENDPOINT=Llama-3.1-8B-Instruct
-EMBEDDING_MODEL_NAME=bge-base-en-v1.5
+EMBEDDING_MODEL_NAME=BAAI/bge-base-en-v1.5
 INFERENCE_MODEL_NAME=meta-llama/Llama-3.1-8B-Instruct
 ```
 
