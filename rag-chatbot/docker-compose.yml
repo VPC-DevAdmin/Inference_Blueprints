@@ -15,7 +15,8 @@ services:
       - appnet
     restart: unless-stopped
     depends_on:
-      - local-embeddings
+      local-embeddings:
+        condition: service_healthy
 
   rag-frontend:
     build:
